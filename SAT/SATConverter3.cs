@@ -830,11 +830,14 @@ namespace HDictInduction.Console.SAT
                             Debug.WriteLine("ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                         else
                             Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
-                    else */if (omega2Threshold > 0)
+                    else */
+                    /*if (omega2Threshold > 0)
+                    {
                         if (currentCost <= threshold2)
                             Debug.WriteLine("ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                         else
                             Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                    }*/
                     //else
                     //    Debug.WriteLine("#ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                 }                    

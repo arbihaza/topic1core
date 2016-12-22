@@ -38,7 +38,8 @@ namespace HDictInduction.Console.SAT
 
         public static int languageOption = 1;
         public static double omega2Threshold = 0;
-        public static double omega3Threshold = 0;
+        //public static double omega3Threshold = 0;
+        public static bool acceptOmega3NewPair = true;
 
         private List<WordPair> GeneratePossiblePairs(BidirectionalGraph<Word, Edge<Word>> g)
         {
@@ -701,7 +702,7 @@ namespace HDictInduction.Console.SAT
                 {
                     if (ooPairs.ContainsKey(varPairMap[item.Key]))
                         continue;
-                    Debug.WriteLine("varPairMap[item]: " + varPairMap[item.Key] + " decision: " + item.Value);
+                    //Debug.WriteLine("varPairMap[item]: " + varPairMap[item.Key] + " decision: " + item.Value);
 
                     if (item.Value)
                         ooPairs.Add(varPairMap[item.Key], ++rank);
@@ -728,22 +729,20 @@ namespace HDictInduction.Console.SAT
 
             List<string> ooPairString = new List<string>();
             foreach (var item in ooPairs.Keys)
-            {
                 if (ooPairs[item] > 0)
                     ooPairString.Add(string.Format("{0},{1},{2}", ooPairs[item], item.WordU, item.WordK));
-            }                
             string ooFileName = file.FullName.Replace(".wcnf", ".oo");
             System.IO.File.WriteAllLines(ooFileName, ooPairString.ToArray());
             int pairCount = ooPairString.Count;
 
 
-            List<string> mapPairString = new List<string>();
+            /*List<string> mapPairString = new List<string>();
             foreach (var item in pairs)
                 mapPairString.Add(string.Format("{0}\t{1}\t{2}", pairVarMap[item], item.WordU, item.WordK));
             string mapFileName = file.FullName.Replace(".wcnf", ".map");
             System.IO.File.WriteAllLines(mapFileName, mapPairString.ToArray());
             int possiblePairCount = mapPairString.Count;
-
+            */
 
            
 
@@ -781,7 +780,8 @@ namespace HDictInduction.Console.SAT
             //so, no need to filter, either accept them all or not at all
             //Thus, we can use one threshold for both omega2 and omega3 (with option to accept new pair in D_N or not)                                         
             double threshold2 = 1000000000 * omega2Threshold;
-            double threshold3 = 1000000000 * omega3Threshold; 
+            //double threshold3 = 1000000000 * omega3Threshold;
+            
             //List<int> inducedPairs = new List<int>();
             Dictionary<int, bool> inducedPairs = new Dictionary<int, bool>();
             long time = DateTime.Now.Ticks;
@@ -825,12 +825,12 @@ namespace HDictInduction.Console.SAT
                     //Debug.WriteLine("totalCostHistory:" + totalCostHistory);
                     //Debug.WriteLine("currentCost:" + currentCost);
                     totalCostHistory = totalCost;
-                    if (omega3Threshold > 0)
+                    /*if (omega3Threshold > 0)
                         if (currentCost <= threshold3)
                             Debug.WriteLine("ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                         else
                             Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
-                    else if (omega2Threshold > 0)
+                    else */if (omega2Threshold > 0)
                         if (currentCost <= threshold2)
                             Debug.WriteLine("ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                         else
@@ -842,16 +842,16 @@ namespace HDictInduction.Console.SAT
                 //    return new KeyValuePair<List<int>, long>(new List<int>(), timeToSolve); //unsatisfiable
                 //Debug.WriteLine(totalCost);
             }
-                
+
             //Dictionary<int, bool> variables = new Dictionary<int, bool>();
 
             foreach (var item in solution.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 int varValue = int.Parse(item);
                 bool b = varValue > 0 ? true : false;
-                double currentThreshold = 0;
-                bool useThreshold = false;
-                if (omega3Threshold > 0 && omega2Threshold == 0)
+                double currentThreshold = threshold2;
+                //bool useThreshold = false;
+                /*if (omega3Threshold > 0 && omega2Threshold == 0)
                 {
                     currentThreshold = threshold3;
                     useThreshold = true;// totalCost < omega3Threshold ? false : true;
@@ -860,16 +860,23 @@ namespace HDictInduction.Console.SAT
                 {
                     currentThreshold = threshold2;
                     useThreshold = true;// totalCost < omega2Threshold ? false : true;
-                }
+                }*/
                 if (b && varPairMap.ContainsKey(varValue))
                 {
-                    Debug.WriteLine("CurrentCost: " + currentCost);
-                    if (!useThreshold && currentCost == 100000000000)
+                    //Debug.WriteLine("CurrentCost: " + currentCost);
+                    if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
                     {
-                        inducedPairs[varValue] = true;
-                        Debug.WriteLine("#ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);                        
+                        if (acceptOmega3NewPair)
+                            inducedPairs[varValue] = true;
+                        else
+                        {
+                            if (currentCost != 100000000000)
+                                inducedPairs[varValue] = true;
+                            else
+                                inducedPairs[varValue] = false;
+                        }
                     }                        
-                    else// if (currentCost <= currentThreshold)
+                    /*else if (currentCost <= currentThreshold)
                     {
                         inducedPairs[varValue] = false;
                         //Debug.WriteLine("ACCEPTED PAIR: " + currentCost);
@@ -879,6 +886,7 @@ namespace HDictInduction.Console.SAT
                     //    Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                     //if (totalCost > 100000000000)
                     //    Debug.WriteLine(totalCost);
+                    */
                 }                    
             }
 

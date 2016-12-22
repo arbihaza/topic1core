@@ -198,18 +198,21 @@
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
                                Content="-" />
+                        
                         <TextBox Name="textBoxIndex"
                                  Width="102"
                                  Height="23"
-                                 Margin="834,0,0,25"
+                                 Margin="834,0,0,35"
                                  HorizontalAlignment="Left"
-                                 VerticalAlignment="Bottom" />
+                                 VerticalAlignment="Bottom" Text="1 - " />
                         <Label Name="label3"
                                Height="28"
-                               Margin="834,0,0,46"
+                               Margin="834,0,0,56"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Bottom"
                                Content="Index: from-to" />
+                        <CheckBox x:Name="useNewPairs" Content="Use New Pairs" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="834,0,0,110" Click="useNewPairs_Click" IsChecked="True"/>
+                        <CheckBox x:Name="uniqenessConstraint" Content="1-1 result" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="834,0,0,86" Click="uniqenessConstraint_Click"/>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Options" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="55.2">
@@ -223,16 +226,16 @@
                         </GroupBox>
                         <GroupBox Header="Threshold of Total Cost:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="580" Margin="302,10,-0.4,0">
                             <StackPanel HorizontalAlignment="Left" Height="133" Margin="10,10,0,0" VerticalAlignment="Top" Width="600">
-                                <Label Content="Threshold for WPMax-SAT instance #2:"/>
+                                <!--Label Content="Threshold for WPMax-SAT instance #2:"/-->
                                 <StackPanel Height="30" Width="600" Orientation="Horizontal">
                                     <Slider x:Name="sliderThresholdOmega2" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="1" TickFrequency="0.1" ValueChanged="sliderThresholdOmega2_ValueChanged"/>
                                     <TextBox Name="textBoxOmega2" Text="{Binding ElementName=sliderThresholdOmega2,Path=Value}" Width="40"/>
                                 </StackPanel>
-                                <Label Content="Threshold for WPMax-SAT instance #3:"/>
+                                <!--Label Content="Threshold for WPMax-SAT instance #3:"/>
                                 <StackPanel Height="30" Width="600" Orientation="Horizontal">
                                     <Slider x:Name="sliderThresholdOmega3" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="1" TickFrequency="10" ValueChanged="sliderThresholdOmega3_ValueChanged" Maximum="100"/>
                                     <TextBox Name="textBoxOmega3" Text="{Binding ElementName=sliderThresholdOmega3,Path=Value}" Width="40"/>
-                                </StackPanel>
+                                </StackPanel-->
                             </StackPanel>
                         </GroupBox>
                         <!-- GroupBox Header="Language Characteristics Description" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="656" Margin="302,10,-0.4,0">

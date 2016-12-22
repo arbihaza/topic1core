@@ -1699,12 +1699,12 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             //Debug.WriteLine("sliderThresholdOmega2Value:"+ sliderThresholdOmega2Value);
         }
 
-        private void sliderThresholdOmega3_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        /*private void sliderThresholdOmega3_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             double sliderThresholdOmega3Value = (double)sliderThresholdOmega3.Value;
             SATConverter3.omega3Threshold = sliderThresholdOmega3Value;// int.Parse(this.textBoxOmega3Threshold.Text);
             //Debug.WriteLine("sliderThresholdOmega3Value:" + sliderThresholdOmega3Value);
-        }
+        }*/
 
         private void WPMaxSAT_Checked(object sender, RoutedEventArgs e)
         {
@@ -1724,7 +1724,17 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 SATConverter3.languageOption = 3;
             }
         }
-        
+
+        private void useNewPairs_Click(object sender, RoutedEventArgs e)
+        {
+            SATConverter3.acceptOmega3NewPair = useNewPairs.IsChecked == true ? true : false;
+        }
+
+        private void uniqenessConstraint_Click(object sender, RoutedEventArgs e)
+        {
+            SATConverter3.languageOption = uniqenessConstraint.IsChecked == true ? 1 : 3;
+        }
+
         /*private void MenuItem_Click_5(object sender, RoutedEventArgs e)
         {
             if (dataBaseConnectedComponents2 == null)

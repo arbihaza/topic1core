@@ -1,0 +1,399 @@
+﻿<Window x:Class="HDictInduction.Console.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:gs="clr-namespace:GraphSharp.Controls;assembly=GraphSharp.Controls"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:zoom="clr-namespace:WPFExtensions.Controls;assembly=WPFExtensions"
+        Title="SAT-based Dictionary Induction Tool  (beta)"
+        Width="970"
+        Height="924"
+        Loaded="Window_Loaded"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ObjectDataProvider x:Key="algorithmConstraintEnum"
+                                MethodName="GetValues"
+                                ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="gs:AlgorithmConstraints" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Name="DocumentRoot">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="200" />
+        </Grid.RowDefinitions>
+        <DockPanel Name="dockPanel1"
+                   Grid.Row="0"
+                   Margin="0,20,0,0"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   Background="#FFF5ECEC">
+            <zoom:ZoomControl Name="zoomGraph" DockPanel.Dock="Bottom">
+                <gs:GraphLayout x:Name="graphLayout"
+                                Graph="{Binding}"
+                                HighlightAlgorithmType="Simple"
+                                LayoutAlgorithmType="{Binding Path=LayoutAlgorithmType}"
+                                OverlapRemovalAlgorithmType="FSA"
+                                OverlapRemovalConstraint="Must" />
+
+            </zoom:ZoomControl>
+        </DockPanel>
+        <DockPanel Name="dockPanel2"
+                   Grid.Row="1"
+                   Margin="0,5,0,0"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch">
+            <TabControl Name="tabControl1"
+                        DockPanel.Dock="Bottom"
+                        FlowDirection="LeftToRight"
+                        TabStripPlacement="Bottom">
+                <TabItem Name="tabItem1" Header="Main">
+                    <Grid>
+                        <ListBox Name="listBoxAllCWords"
+                                 Width="155"
+                                 Height="121"
+                                 Margin="7,36,0,6"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Stretch"
+                                 SelectionChanged="listBoxAllCWords_SelectionChanged" />
+                        <ListBox Name="listBox_LinkedCWords"
+                                 Width="178"
+                                 Height="123"
+                                 Margin="178,36,0,8"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Stretch" />
+                        <TextBox Name="textBox_SearchCWord"
+                                 Width="98"
+                                 Height="23"
+                                 Margin="7,7,0,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top" />
+                        <Button Name="button_SearchCWord"
+                                Width="52"
+                                Height="23"
+                                Margin="110,7,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_SearchCWord_Click"
+                                Content="Search" />
+                        <Label Name="label1"
+                               Width="71"
+                               Height="28"
+                               Margin="174,9,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="Pivot word : " />
+                        <Label Name="label_LinkedCWordCount"
+                               Width="105"
+                               Height="28"
+                               Margin="251,9,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="-" />
+                        <ListBox Name="listBox1"
+                                 Width="316"
+                                 Margin="362,36,0,35"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Stretch" />
+                        <Button Name="buttonNaiveCombination"
+                                Width="143"
+                                Height="23"
+                                Margin="685,0,0,107"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonNaiveCombination_Click"
+                                Content="Naive Combination" />
+                        <!--Button Name="button1"
+                                Width="143"
+                                Height="23"
+                                Margin="685,0,0,107"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="button1_Click"
+                                Content="Display Selected" />
+                        <Button Name="buttonConvertToSAT"
+                                Width="96"
+                                Height="23"
+                                Margin="477,0,0,8"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonConvertToSAT_Click"
+                                Content="Encode Selected" />
+                        <Button Name="buttonCreateViz"
+                                Width="109"
+                                Height="23"
+                                Margin="362,0,0,8"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonCreateViz_Click"
+                                Content="Cluster Selected" /-->
+                        <Button Name="buttonTest"
+                                Width="143"
+                                Height="23"
+                                Margin="685,0,0,29"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonTest_Click"
+                                Content="Solve All" />
+                        <!--Button Name="buttonDisplayPivotGraph"
+                                Width="143"
+                                Height="23"
+                                Margin="685,0,0,81"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonDisplayPivotGraph_Click"
+                                Content="Display Selected (Pivot)" /-->
+                        <Button Name="buttonTraditionalTanaka"
+                                Width="143"
+                                Height="23"
+                                Margin="685,0,0,81"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonTraditionalTanaka_Click"
+                                Content="Traditional Tanaka" />
+                        <Button Name="button2"
+                                Width="143"
+                                Height="23"
+                                Margin="685,0,0,55"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="button2_Click"
+                                Content="Display All Transgraphs" />
+                        <!--Button Name="buttonTest1"
+                                Width="102"
+                                Height="23"
+                                Margin="834,38,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="buttonTest1_Click"
+                                Content="Test 1" /-->
+                        <Button Name="buttonSolveSelected"
+                                Width="99"
+                                Height="23"
+                                Margin="579,0,0,8"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="buttonSolveSelected_Click"
+                                Content="Solve selected" />
+                        <CheckBox Name="checkBoxDisplayType"
+                                  Height="16"
+                                  Margin="685,0,0,10"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Bottom"
+                                  Content="Use numbered identifier" />
+                        <Label Name="label2"
+                               Height="28"
+                               Margin="362,6,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="Transgraph :" />
+                        <Label Name="labelGraphCount"
+                               Height="28"
+                               Margin="444,6,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="-" />
+                        <TextBox Name="textBoxIndex"
+                                 Width="102"
+                                 Height="23"
+                                 Margin="834,0,0,25"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Bottom" />
+                        <Label Name="label3"
+                               Height="28"
+                               Margin="834,0,0,46"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Bottom"
+                               Content="Index: from-to" />
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Options" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="55.2">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <GroupBox Header="Select WPMax-SAT instance:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="217" Margin="10,10,0,0" >
+                            <StackPanel HorizontalAlignment="Left" Height="133" Margin="10,20,0,0" VerticalAlignment="Top" Width="382">
+                                <RadioButton Name="LC1" Content="WPMax-SAT instance #1" Height="30" Checked="WPMaxSAT_Checked"/>
+                                <RadioButton Name="LC2" Content="WPMax-SAT instance #2" Height="30" Checked="WPMaxSAT_Checked"/>
+                                <RadioButton Name="LC2b" IsChecked="True" Content="WPMax-SAT instance #3" Height="30" Checked="WPMaxSAT_Checked"/>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Threshold of Total Cost:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="580" Margin="302,10,-0.4,0">
+                            <StackPanel HorizontalAlignment="Left" Height="133" Margin="10,10,0,0" VerticalAlignment="Top" Width="600">
+                                <Label Content="Threshold for WPMax-SAT instance #2:"/>
+                                <StackPanel Height="30" Width="600" Orientation="Horizontal">
+                                    <Slider x:Name="sliderThresholdOmega2" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="1" TickFrequency="0.1" ValueChanged="sliderThresholdOmega2_ValueChanged"/>
+                                    <TextBox Name="textBoxOmega2" Text="{Binding ElementName=sliderThresholdOmega2,Path=Value}" Width="40"/>
+                                </StackPanel>
+                                <Label Content="Threshold for WPMax-SAT instance #3:"/>
+                                <StackPanel Height="30" Width="600" Orientation="Horizontal">
+                                    <Slider x:Name="sliderThresholdOmega3" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="1" TickFrequency="10" ValueChanged="sliderThresholdOmega3_ValueChanged" Maximum="100"/>
+                                    <TextBox Name="textBoxOmega3" Text="{Binding ElementName=sliderThresholdOmega3,Path=Value}" Width="40"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        <!-- GroupBox Header="Language Characteristics Description" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="656" Margin="302,10,-0.4,0">
+                            <TabControl Name="LCTabControl" TabStripPlacement="Bottom">
+                                <TabItem Name="L1TabItem" Header="Language Characteristics #1">
+                                    <TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="1. Low-resource intra-family languages&#x0a;2. Very high similarity&#x0a;3. Target: high quality bilingual dictionary&#x0a;4. Result: one-to-one translation pairs" VerticalAlignment="Top" Height="104" Width="484"/>
+                                </TabItem>
+                                <TabItem Name="L2TabItem" Header="Language Characteristics #2">
+                                    <TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="1. Very-low-resource intra-family languages&#x0a;2. High similarity&#x0a;3. Target: high quantity bilingual dictionary while maintaining good quality&#x0a;4. Result: one-to-many translation pairs from connected existing edges only" VerticalAlignment="Top" Height="104" Width="484"/>
+                                </TabItem>
+                                <TabItem Name="L2bTabItem" Header="Language Characteristics #2'">
+                                    <TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="1. Very-low-resource intra-family languages&#x0a;2. High similarity&#x0a;3. Target: higher quantity bilingual dictionary&#x0a;4. Result: one-to-many translation pairs from connected existing and new edges" VerticalAlignment="Top" Height="104" Width="484"/>
+                                </TabItem>
+                            </TabControl>
+                        </-->
+                    </Grid>
+
+                </TabItem>
+                <TabItem Header="Graph" />
+                <TabItem Header="View">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <GroupBox Width="118"
+                                  Height="49"
+                                  Margin="6,2,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Top"
+                                  Header="Layout Algorithm">
+                            <ComboBox Name="cmbxLayoutAlgorithm"
+                                      Grid.Column="1"
+                                      VerticalAlignment="Bottom"
+                                      ItemsSource="{Binding Path=LayoutAlgorithmFactory.AlgorithmTypes,
+                                                            ElementName=graphLayout}"
+                                      SelectedValue="{Binding Path=LayoutAlgorithmType,
+                                                              ElementName=graphLayout,
+                                                              Mode=TwoWay}" />
+                        </GroupBox>
+                        <GroupBox Width="415"
+                                  Margin="6,58,0,6"
+                                  HorizontalAlignment="Left"
+                                  Content="{Binding Path=LayoutParameters,
+                                                    ElementName=graphLayout}"
+                                  Header="Layout Algorithm Parameters" />
+                        <GroupBox Width="168"
+                                  Height="45"
+                                  Margin="427,6,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Top"
+                                  Header="Overlap Removal Algorithm">
+                            <ComboBox Name="cmbxOverLapAlgorithm"
+                                      Grid.Column="1"
+                                      VerticalAlignment="Top"
+                                      ItemsSource="{Binding Path=OverlapRemovalAlgorithmFactory.AlgorithmTypes,
+                                                            ElementName=graphLayout}"
+                                      SelectedValue="{Binding Path=OverlapRemovalAlgorithmType,
+                                                              ElementName=graphLayout}" />
+                        </GroupBox>
+                        <GroupBox Margin="427,58,6,6"
+                                  Content="{Binding Path=OverlapRemovalParameters,
+                                                    ElementName=graphLayout}"
+                                  Header="Overlap Algorithm Parameters" />
+                        <Button Name="button_Relayout"
+                                Width="75"
+                                Height="23"
+                                Margin="130,23,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_Relayout_Click"
+                                Content="Relayout" />
+                    </Grid>
+                </TabItem>
+                <TabItem Name="tabItem2" Header="Output">
+                    <Grid>
+                        <TextBox Name="textBox_Output"
+                                 Margin="6,6,111,6"
+                                 Text=""
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                        <Button Name="button_Output_Copy"
+                                Width="99"
+                                Height="23"
+                                Margin="0,6,6,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Click="button_Output_Copy_Click"
+                                Content="Copy" />
+                        <Button Name="button_Output_Clear"
+                                Width="99"
+                                Height="23"
+                                Margin="0,35,6,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Click="button_Output_Clear_Click"
+                                Content="Clear" />
+                        <Button Name="buttonSATAnalyse"
+                                Width="97"
+                                Height="23"
+                                Margin="0,79,6,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Click="buttonSATAnalyse_Click"
+                                Content="Analyse SAT" />
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+        <GridSplitter Name="gridSplitter1"
+                      Grid.Row="1"
+                      Width="50"
+                      Height="5"
+                      Margin="262,0,254,0"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Top"
+                      Background="#64000000"
+                      ResizeBehavior="BasedOnAlignment"
+                      ResizeDirection="Rows" />
+        <Menu Name="MenuItem_Relayout"
+              Height="25"
+              Margin="0"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Top">
+            <MenuItem Header="File">
+                <MenuItem Name="MenuItem_SaveToImage"
+                          Click="MenuItem_SaveToImage_Click"
+                          Header="Save to image" />
+                <Separator />
+                <MenuItem Name="MenuItem_Exit"
+                          Command="ApplicationCommands.Close"
+                          Header="Exit" />
+            </MenuItem>
+            <MenuItem Click="MenuItem_Click_4" Header="Transgraph" >
+            </MenuItem>
+            <MenuItem Click="MenuItem_Click_2" Header="Layout" />
+            <!--MenuItem Name="MenuItem_Temp"
+                      Click="MenuItem_Temp_Click"
+                      Header="Function">
+                <MenuItem Click="MenuItem_Click_1" Header="Filter graph with less nodes" />
+                <MenuItem Header="Load Triple Graphs" />
+            </MenuItem-->
+            <MenuItem Click="MenuItem_Click_3" Header="Evaluation" />
+            <!--MenuItem Click="MenuItem_Click_5" Header="Help" /-->
+        </Menu>
+        <Label Name="label_Graph_Domain"
+               Width="529"
+               Height="23"
+               Margin="11,20,0,0"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Top"
+               HorizontalContentAlignment="Left"
+               VerticalContentAlignment="Center"
+               Content="label1"
+               FlowDirection="LeftToRight"
+               Padding="0" />
+        <Label Name="label_CurrentWord"
+               Width="221"
+               Height="22"
+               Margin="0,21,5,0"
+               HorizontalAlignment="Right"
+               VerticalAlignment="Top"
+               HorizontalContentAlignment="Right"
+               VerticalContentAlignment="Center"
+               Content="-"
+               Padding="0" />
+    </Grid>
+</Window>

@@ -1,0 +1,964 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using System.ComponentModel;
+using QuickGraph;
+using GraphSharp.Controls;
+using HDictInduction.Console.Resources;
+using QuickGraph.Algorithms.ConnectedComponents;
+using System.Diagnostics;
+using org.sat4j.pb;
+using org.sat4j.maxsat;
+using org.sat4j.maxsat.reader;
+using org.sat4j.specs;
+using System.Threading.Tasks;
+using yWorks.yFiles.Algorithms;
+
+
+namespace HDictInduction.Console
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public string ApplicationPath
+        {
+            get;
+            set;
+        }
+
+        private Dictionary<string, NodeControl> _nodeStore = null;
+        
+        private IBidirectionalGraph<object, IEdge<object>> _graph = null;
+
+        public MainWindow()
+        {
+     
+
+            //Word u1 = new Word(1, "u1", Console.Language.Uyghur);
+            //Word u2 = new Word(2, "u2", Console.Language.Uyghur);
+
+
+            //Word k1 = new Word(1, "k1", Console.Language.Kazak);
+            //Word k2 = new Word(2, "k2", Console.Language.Kazak);
+            //Word k3 = new Word(3, "k3", Console.Language.Kazak);
+
+            //List<KeyValuePair<Word, Word>> l1 = new List<KeyValuePair<Word, Word>>();
+            //List<KeyValuePair<Word, Word>> l2 = new List<KeyValuePair<Word, Word>>();
+
+            //l1.Add(new KeyValuePair<Word,Word>(u1,k1));
+            //l1.Add(new KeyValuePair<Word, Word>(u1, k2));
+
+            //l2.Add(new KeyValuePair<Word, Word>(u1, k1));
+            //l2.Add(new KeyValuePair<Word, Word>(u2, k3));
+
+            //var v = l1.Intersect(l2, new KVComparer());
+            //return;
+
+
+
+            //System.Windows.Forms.OpenFileDialog of = new System.Windows.Forms.OpenFileDialog();
+            //of.ShowDialog();
+            //string[] lines = System.IO.File.ReadAllLines(of.FileName);
+
+            //Array.Sort(lines);
+
+            //StringBuilder sb = new StringBuilder();
+            //var v = lines.GroupBy(t => t);
+            //foreach (var item in v)
+            //{
+            //    sb.AppendLine(item.First() + "\t" + item.Count());
+            //}
+
+            //System.IO.File.WriteAllText("temp.txt", sb.ToString());
+
+
+
+
+
+
+
+
+            _nodeStore = new Dictionary<string, NodeControl>();
+            ApplicationPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            InitializeComponent();
+            this.InitializeComponent();
+
+            GraphSharp.Algorithms.Layout.Simple.Hierarchical.EfficientSugiyamaLayoutParameters
+    parameter = new GraphSharp.Algorithms.Layout.Simple.Hierarchical.EfficientSugiyamaLayoutParameters();
+            parameter.LayerDistance = 100f;
+            this.graphLayout.LayoutParameters = parameter;
+
+            this.IsEnabled = false;
+            cmbxLayoutAlgorithm.SelectedIndex = 7;
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.DoWork += new DoWorkEventHandler(delegate
+            {
+                DBHelper.GenerateDatabase(new List<string>(), new List<string>());
+            });
+            worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate
+            {
+                //this.listBoxAllCWords.ItemsSource = DBHelper.Database[0].AtoBdataset.Keys;
+                this.listBoxAllCWords.ItemsSource = DBHelper.MyDictBase.CWords;
+                this.IsEnabled = true;
+            });
+
+            worker.RunWorkerAsync();
+            //this.tabControl1.IsEnabled = true;
+            this.graphLayout.Graph = createSampleGraph2();
+            this.graphLayout.Relayout();
+
+       
+        }
+
+        private void updateGraphInfo()
+        {
+            
+            int u = 0;
+            int c = 0;
+            int k = 0;
+            BidirectionalGraph<object, IEdge<object>> graph = (BidirectionalGraph<object, IEdge<object>>)this._graph;
+            foreach (object item in graph.Vertices)
+            {
+                if (item.ToString().StartsWith("x"))
+                {
+                    u++;
+                }
+                if (item.ToString().StartsWith("z"))
+                {
+                    c++;
+                }
+                if (item.ToString().StartsWith("y"))
+                {
+                    k++;
+                }
+            }
+            this.label_Graph_Domain.Content = string.Format("|X|={0}, |Y|={1}, |Z|={2}   Vertices={3}  Edges={4}", new object[] { u, k, c, graph.VertexCount, graph.EdgeCount });
+        }
+
+        private BidirectionalGraph<object, IEdge<object>> createSampleGraph()
+        {
+            _nodeStore.Clear();
+            BidirectionalGraph<object, IEdge<object>> g = new BidirectionalGraph<object, IEdge<object>>();
+            for (int i = 1; i <= 5; i++)
+            {
+                NodeControl nu = new NodeControl(string.Format("{0}{1}", "x", i), new Word(i, string.Format("{0}{1}", "x", i), HDictInduction.Console.Language.Uyghur));
+                NodeControl nk = new NodeControl(string.Format("{0}{1}", "y", i), new Word(i, string.Format("{0}{1}", "y", i), HDictInduction.Console.Language.Kazak));
+
+
+                _nodeStore.Add(nu.NodeMark, nu);
+                _nodeStore.Add(nk.NodeMark, nk);
+
+                g.AddVertex(nu);
+                g.AddVertex(nk);
+
+                if (i < 4)
+                {
+                    NodeControl nc = new NodeControl(string.Format("{0}{1}", "z", i), new Word(i, string.Format("{0}{1}", "z", i), HDictInduction.Console.Language.Chinese));
+                    _nodeStore.Add(nc.NodeMark, nc);
+                    g.AddVertex(nc);
+                }
+            }
+
+            g.AddEdge(new Edge<object>(_nodeStore["c1"], _nodeStore["u1"]));
+            g.AddEdge(new Edge<object>(_nodeStore["u1"], _nodeStore["c1"]));
+            g.AddEdge(new Edge<object>(_nodeStore["c1"], _nodeStore["u2"]));
+            g.AddEdge(new Edge<object>(_nodeStore["c1"], _nodeStore["u3"]));
+            g.AddEdge(new Edge<object>(_nodeStore["c2"], _nodeStore["u3"]));
+            g.AddEdge(new Edge<object>(_nodeStore["c2"], _nodeStore["u4"]));
+            g.AddEdge(new Edge<object>(_nodeStore["c3"], _nodeStore["u5"]));
+
+            g.AddEdge(new Edge<object>(_nodeStore["k1"], _nodeStore["c1"]));
+            g.AddEdge(new Edge<object>(_nodeStore["k2"], _nodeStore["c1"]));
+            g.AddEdge(new Edge<object>(_nodeStore["k3"], _nodeStore["c1"]));
+            g.AddEdge(new Edge<object>(_nodeStore["k3"], _nodeStore["c2"]));
+            g.AddEdge(new Edge<object>(_nodeStore["k4"], _nodeStore["c2"]));
+            g.AddEdge(new Edge<object>(_nodeStore["k5"], _nodeStore["c3"]));
+
+            //Button btn = new Button();
+            //btn.Width = 20;
+            //btn.Height = 50;
+            //btn.Content = "hello";
+
+            //g.AddVertex(btn);
+
+
+            return g;
+        }
+
+
+        private BidirectionalGraph<object, IEdge<object>> createSampleGraph2()
+        {
+
+            BidirectionalGraph<object, IEdge<object>> g = new BidirectionalGraph<object, IEdge<object>>();
+
+            g.AddVertex("u0");
+            g.AddVertex("u1");
+            g.AddVertex("u2");
+            g.AddVertex("u3");
+            g.AddVertex("u4");
+
+            g.AddVertex("k0");
+            g.AddVertex("k1");
+            g.AddVertex("k2");
+            g.AddVertex("k3");
+            g.AddVertex("k4");
+
+            g.AddEdge(new Edge<object>("u0", "k0"));
+            g.AddEdge(new Edge<object>("k0", "u0"));
+            g.AddEdge(new Edge<object>("u1", "k1"));
+            g.AddEdge(new Edge<object>("k1", "u1"));
+            g.AddEdge(new Edge<object>("k2", "u3"));
+            g.AddEdge(new Edge<object>("u2", "k1"));
+            g.AddEdge(new Edge<object>("u2", "k2"));
+
+            g.AddEdge(new Edge<object>("k3", "u4"));
+            g.AddEdge(new Edge<object>("u4", "k3"));
+            g.AddEdge(new Edge<object>("u4", "k4"));
+
+            g.AddEdge(new Edge<object>("k4", "u4"));
+
+
+
+            return g;
+        }
+
+        private void button_SearchCWord_Click(object sender, RoutedEventArgs e)
+        {
+            int index = -1;
+            index = this.listBoxAllCWords.Items.IndexOf(this.textBox_SearchCWord.Text.Trim());
+            if (index > -1)
+            {
+                this.listBoxAllCWords.SelectedIndex = index;
+                this.listBoxAllCWords.UpdateLayout();
+            }
+            else
+            {
+                MessageBox.Show("Not found!");
+            }
+        }
+
+        private void listBoxAllCWords_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (this.listBoxAllCWords.SelectedIndex > -1)
+            {
+                string cWord = this.listBoxAllCWords.SelectedItem.ToString();
+                IList<int> cWords = new DBHelper().GetSubGraph(cWord, DBHelper.Language.Chinese);
+                this.listBox_LinkedCWords.ItemsSource = null;
+                this.listBox_LinkedCWords.ItemsSource = DBHelper.MyDictBase.GetCWordByIDs(cWords);
+                this.label_LinkedCWordCount.Content = "(" + cWords.Count.ToString() + ")";
+            }
+            ((ListBox)sender).ScrollIntoView(e.AddedItems[0]);
+
+
+            //if (this.listBoxAllCWords.SelectedIndex > -1)
+            //{
+            //    string cWord = this.listBoxAllCWords.SelectedItem.ToString();
+            //    new DBHelper().GetSubGraphAyn(cWord, DBHelper.Language.Chinese);
+            //    while (DBHelper.LinkedCWords == null)
+            //    { 
+            //    }
+                
+            //    this.listBox_LinkedCWords.ItemsSource = null;
+            //    this.listBox_LinkedCWords.ItemsSource = DBHelper.LinkedCWords;
+            //    this.label_LinkedCWordCount.Content = "(" + DBHelper.LinkedCWords.Count.ToString() + ")";
+            //    ((ListBox)sender).ScrollIntoView(e.AddedItems[0]);
+            //}
+        }
+
+        private void LoadFullGraph()
+        {
+            //BidirectionalGraph<object, IEdge<object>> graph = null;
+
+            //System.Runtime.Serialization.Formatters.Binary.BinaryFormatter f = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            //string file = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "graph.dat");
+            //graph = (BidirectionalGraph<object, IEdge<object>>)f.Deserialize(new System.IO.FileStream(file, System.IO.FileMode.Open));
+            //MessageBox.Show("done");
+        }
+
+        private void button_CreateGraph_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.listBox_LinkedCWords.Items.Count == 0)
+            {
+                MessageBox.Show("Not now!");
+                return;
+            }
+            else if (this.listBox_LinkedCWords.Items.Count > 100)
+            {
+                MessageBoxResult result = MessageBox.Show("Too many C nodes! do it?", "", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result != MessageBoxResult.Yes)
+                    return;
+            }
+            _nodeStore = new Dictionary<string, NodeControl>();
+            BidirectionalGraph<object, IEdge<object>> graph = new BidirectionalGraph<object, IEdge<object>>(false);
+            List<Word> cWords = this.listBox_LinkedCWords.Items.Cast<Word>().ToList<Word>();
+            Dictionary<int, string> uWords = new Dictionary<int, string>();
+            Dictionary<int, string> kWords = new Dictionary<int, string>();
+            for (int i = 0; i < cWords.Count; i++)
+            {
+                NodeControl node = new NodeControl("z" + i.ToString(), cWords[i]);
+                _nodeStore.Add(node.NodeMark, node);
+                graph.AddVertex(node);
+            }
+            int kCounter = 1;
+            int uCounter = 1;
+            for (int i = 0; i < cWords.Count; i++)
+            {
+                Word item = cWords[i];
+                foreach (int item2 in DBHelper.MyDictBase.CKDictbase.CtoK[item.ID])
+                {
+                    if (!kWords.ContainsKey(item2))
+                    {
+                        string k = "y" + kCounter.ToString();
+                        kWords.Add(item2, k);
+
+                        NodeControl node = new NodeControl(k, DBHelper.MyDictBase.GetKWordByID(item2));
+                        _nodeStore.Add(node.NodeMark, node);
+                        graph.AddVertex(node);
+                        graph.AddEdge(new Edge<object>(_nodeStore["z" + i.ToString()], node));
+                        kCounter++;
+                    }
+                    else
+                    {
+                        graph.AddEdge(new Edge<object>(_nodeStore["z" + i.ToString()], _nodeStore[kWords[item2]]));
+                    }
+                }
+                foreach (int item2 in DBHelper.MyDictBase.CUDictbase.CtoU[item.ID])
+                {
+                    if (!uWords.ContainsKey(item2))
+                    {
+                        string u = "x" + uCounter.ToString();
+                        uWords.Add(item2, u);
+
+                        NodeControl node = new NodeControl(u, DBHelper.MyDictBase.GetUWordByID(item2));
+                        _nodeStore.Add(node.NodeMark, node);
+                        graph.AddVertex(node);
+                        graph.AddEdge(new Edge<object>(node,_nodeStore["z" + i.ToString()]));
+                        uCounter++;
+                    }
+                    else
+                    {
+                        graph.AddEdge(new Edge<object>(_nodeStore[uWords[item2]],_nodeStore["z" + i.ToString()]));
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<string, NodeControl> item in _nodeStore)
+            {
+                item.Value.MouseEnter += new EventHandler(node_MouseEnter);
+                item.Value.MouseLeave += new EventHandler(node_MouseLeave);
+            }
+
+            //this.zoomGraph.
+
+            graph.AddVertex("X");
+            graph.AddVertex("Z");
+            graph.AddVertex("Y");
+
+            try
+            {
+
+                this._graph = graph;
+                this.updateGraphInfo();
+                this.graphLayout.Graph = graph;
+            }
+            catch (Exception exp) {
+                MessageBox.Show("Exception!");
+            }
+        }
+
+        void node_MouseLeave(object sender, EventArgs e)
+        {
+            NodeControl node = (sender as NodeControl);
+            if (node == null)
+                return;
+            this.label_CurrentWord.Content = string.Empty;
+        }
+
+        void node_MouseEnter(object sender, EventArgs e)
+        {
+            NodeControl node = (sender as NodeControl);
+            if (node == null)
+                return;
+
+            string newValue = string.Empty;
+            if (node.Word.Language != HDictInduction.Console.Language.Chinese && node.Word.Language != HDictInduction.Console.Language.Node)
+            {
+                newValue = node.Word.Language == HDictInduction.Console.Language.Uyghur ? GlobalStore.Syn.getUKYFromUy(node.Word.Value) :
+                    GlobalStore.Syn.getLtFromKz(node.Word.Value);
+            }
+            else
+                newValue = node.Word.Value;
+            this.label_CurrentWord.Content = newValue;
+        }
+
+
+        private void sid_SaveImage(object sender, SaveImageEventArgs e)
+        {
+            ExportToPng(graphLayout, e.FilePath, e.FileName, e.OverWrite);
+        }
+        /// <summary>
+        /// Method exports the graphlayout to an png image.
+        /// </summary>
+        /// <param name="path">destination of image</param>
+        /// <param name="surface">graphlayout you want to print</param>
+        private void ExportToPng(GraphLayout surface, string path, string fileName, bool overwrite)
+        {
+            try
+            {
+                //Set resolution of image.
+                const double dpi = 96d;
+
+                //Set pixelformat of image.
+                PixelFormat pixelFormat = PixelFormats.Pbgra32;
+
+                //Save current canvas transform
+                Transform transform = surface.LayoutTransform;
+
+                //Reset current transform (in case it is scaled or rotated)
+                surface.LayoutTransform = null;
+
+                //Get the size of canvas
+                Size size = new Size(surface.ActualWidth, surface.ActualHeight);
+
+                //Measure and arrange the surface
+                //VERY IMPORTANT
+                surface.Measure(size);
+                surface.Arrange(new Rect(size));
+
+                //Create a render bitmap and push the surface to it
+                RenderTargetBitmap renderBitmap =
+                  new RenderTargetBitmap(
+                    (int)size.Width,
+                    (int)size.Height,
+                    dpi,
+                    dpi,
+                    pixelFormat);
+
+                //Render the graphlayout onto the bitmap.
+                renderBitmap.Render(surface);
+
+                //System.Windows.MessageBox.Show("Saving in path "+path);
+                if (!System.IO.Directory.Exists(path))
+                {
+                    System.IO.Directory.CreateDirectory(path);
+                }
+
+                //Create a file stream for saving image
+                string fullName = System.IO.Path.Combine(path, fileName);
+
+                if (!System.IO.File.Exists(fullName) || (System.IO.File.Exists(fullName) && overwrite))
+                {
+                    using (System.IO.FileStream outStream = new System.IO.FileStream(fullName, System.IO.FileMode.Create))
+                    {
+                        //Use png encoder for our data
+                        PngBitmapEncoder encoder = new PngBitmapEncoder();
+
+                        //Push the rendered bitmap to it
+                        encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
+
+                        //Save the data to the stream
+                        encoder.Save(outStream);
+                    }
+
+                    //Restore previously saved layout
+                    surface.LayoutTransform = transform;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Instance.LogFile.Error(ex.Message);
+            }
+        }
+
+        private void button_Relayout_Click(object sender, RoutedEventArgs e)
+        {
+            this.graphLayout.Relayout();
+        }
+
+        private void button_Output_Copy_Click(object sender, RoutedEventArgs e)
+        {
+            this.textBox_Output.Copy();
+        }
+
+        private void button_Output_Clear_Click(object sender, RoutedEventArgs e)
+        {
+            this.textBox_Output.Clear();
+        }
+
+        private void MenuItem_SaveToImage_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (this.graphLayout.Graph != null)
+                {
+                    SaveImageDialog sid = new SaveImageDialog();
+                    sid.Path = System.IO.Path.Combine(ApplicationPath, "Graph Images");
+                    sid.SaveImage += new SaveImageHandler(sid_SaveImage);
+                    sid.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Instance.LogFile.Info(ex.Message + "\n" + ex.StackTrace);
+            }
+        }
+
+        private void MenuItem_Click_2(object sender, RoutedEventArgs e)
+        {
+            this.graphLayout.Relayout();
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            (new WindowHeuristics()).Show();
+        }
+
+        private void MenuItem_Click_1(object sender, RoutedEventArgs e)
+        {
+            DBHelper helper = new DBHelper();
+            Dictionary<int, int> resutl = new Dictionary<int, int>();
+            List<string> list = new List<string>();
+            StringBuilder sb = new StringBuilder();
+            Dictionary<int, bool> dict = new Dictionary<int, bool>();
+            foreach (int item in Enumerable.Range(0,DBHelper.MyDictBase.CWords.Length-1))
+            {
+                if (dict.ContainsKey(item))
+                    continue;
+                IList<int> l = helper.GetSubGraph(item, DBHelper.Language.Chinese);
+                if (l.Count > 100)
+                {
+                    foreach (int item2 in l)
+                    {
+                        if (!dict.ContainsKey(item2))
+                            dict.Add(item2, true);
+                    }
+                }
+                else
+                {
+                    if (l.Count > 3)
+                    {
+                        foreach (int item3 in l)
+                        {
+                            if (!resutl.ContainsKey(item3))
+                                resutl.Add(item3, l.Count);
+                        }
+                    }
+                }
+            }
+
+
+            resutl = resutl.OrderByDescending(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+            foreach (KeyValuePair<int, int> item in resutl)
+            {
+                sb.AppendLine(string.Format("{0}\t{1}", DBHelper.MyDictBase.GetCWordByID(item.Key).Value, item.Value));
+            }
+            this.textBox_Output.Text = sb.ToString();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        //List sb = new List();
+        private void MenuItem_Temp_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var item in DBHelper.MyDictBase.CUDictbase.CtoU)
+            {
+                
+                foreach (var item2 in item.Value)
+                {
+                    
+                }
+            }
+        }
+
+        private void MenuItem_Click_3(object sender, RoutedEventArgs e)
+        {
+            (new HumanEvalivationWindow()).Show();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+
+
+        private void button_FullGraph_Click(object sender, RoutedEventArgs e)
+        {
+            LoadConnectedComponets(null);
+        }
+
+        private List<BidirectionalGraph<Word, Edge<Word>>> dataBaseConnectedComponents = null;
+        private List<BidirectionalGraph<Word, Edge<Word>>> dataBaseConnectedComponents2 = null;
+        private void LoadConnectedComponets(BidirectionalGraph<Word, Edge<Word>> graph)
+        {
+            Dictionary<int, int> stat = new Dictionary<int, int>();
+            if(graph == null)
+            dataBaseConnectedComponents = (new DBHelper()).GetDatabaseConnectedComponents();
+            else
+                dataBaseConnectedComponents = (new DBHelper()).GetDatabaseConnectedComponents(graph);
+
+            foreach (var item in dataBaseConnectedComponents)
+            {
+                int pivotCount = item.Vertices.Where(t => t.Language == Console.Language.Chinese).Count();
+                if (!stat.ContainsKey(pivotCount))
+                    stat.Add(pivotCount, 1);
+                else
+                    stat[pivotCount] = stat[pivotCount] + 1;
+            }
+
+            var v = stat.OrderBy(t => t.Key).OrderBy(t => t.Value).ToList();
+
+            v.ForEach(t => this.textBox_Output.AppendText(string.Format("{0}\t{1}{2}", t.Key, t.Value, Environment.NewLine)));
+            dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 1 && t.Vertices.Count() > 6).OrderBy(t => t.Vertices.Count()).ToList();
+            int id = 1;
+            this.listBox1.ItemsSource = dataBaseConnectedComponents2.Select(t => string.Format("{0}, Vertex:{1} Edge:{2}", id++, t.VertexCount, t.EdgeCount));
+          
+        }
+
+        private void button1_Click(object sender, RoutedEventArgs e)
+        {
+            if (dataBaseConnectedComponents2 == null)
+                return;
+            if (this.listBox1.SelectedIndex < 0)
+                return;
+
+            BidirectionalGraph<Word, Edge<Word>> graph1 = dataBaseConnectedComponents2[this.listBox1.SelectedIndex];
+            if (graph1.Vertices.Count() > 100)
+                return;
+
+            BidirectionalGraph<object, IEdge<object>> graph2 = new BidirectionalGraph<object, IEdge<object>>(false);
+            foreach (var item in graph1.Vertices)
+            {
+                graph2.AddVertex(item); 
+            }
+
+            foreach (var item in graph1.Edges) 
+            {
+                if (item.Source.Language == Console.Language.Chinese && item.Target.Language == Console.Language.Uyghur)
+                    graph2.AddEdge(new Edge<object>(item.Target, item.Source));
+                else
+                    graph2.AddEdge(new Edge<object>(item.Source, item.Target));
+            }
+
+
+            try
+            {
+
+                this._graph = graph2;
+                this.updateGraphInfo();
+                this.graphLayout.Graph = graph2;
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("Exception!");
+            }
+        }
+
+        private void buttonConvertToSAT_Click(object sender, RoutedEventArgs e)
+        {
+
+           //string retult =  SAT.SATTemp.Main(dataBaseConnectedComponents2[this.listBox1.SelectedIndex]);
+           //this.textBox_Output.Text = retult;
+           ////this.textBox_Output.Text =  SAT.SATTemp.Test();
+
+            //return;
+
+            if (dataBaseConnectedComponents2 == null)
+                return; 
+            if (this.listBox1.SelectedIndex < 0)
+                return;
+            BidirectionalGraph<Word, Edge<Word>> graph1 = dataBaseConnectedComponents2[this.listBox1.SelectedIndex];
+       
+
+
+            SAT.SATConverter2 converter = new SAT.SATConverter2();
+            List<SAT.OOPair> list = converter.Generate(graph1);
+            string cnf = converter.GetCNF(list, graph1);
+
+
+            string cnfFileName = @"d:\graph.wcnf";
+            System.IO.File.WriteAllText(cnfFileName, cnf);
+
+            //string cnfFileName = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "problem.wcnf");
+            //System.IO.File.WriteAllText(cnfFileName, cnf);
+
+            //string solverPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SATSolverConsole.jar");
+            //string strCmdText = string.Format("/C java -jar {0} {1}",solverPath,cnfFileName);
+            //System.Diagnostics.Process.Start("CMD.exe", strCmdText);
+
+            MessageBox.Show("Done!");
+        }
+
+        private void buttonSATAnalyse_Click(object sender, RoutedEventArgs e)
+        {
+            
+            if (SAT.SATConverter2.PairVarMap == null)
+                return;
+            string resultFileName = @"d:\result.txt";
+            if (!System.IO.File.Exists(resultFileName))
+                return;
+            string[] varStr = System.IO.File.ReadAllText(resultFileName).Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (varStr.Length != SAT.SATConverter2.LastVarCount+1)
+            {
+                textBox_Output.Text = "Var count not match!";
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            foreach (var item in varStr)
+            {
+                if (!SAT.SATConverter2.PairVarMap.ContainsValue(item))
+                    continue;
+                SAT.OOPair pair = SAT.SATConverter2.PairVarMap.Where(t => t.Value == item).First().Key;
+                sb.AppendLine(string.Format("{0}\t{1}", pair.WordU.Value, pair.WordK.Value));
+            }
+
+            this.textBox_Output.Text = sb.ToString();
+        }
+
+
+        private class WeightDataProvider : IDataProvider
+        {
+            private Dictionary<Edge, int> _edgeWeight;
+
+            public WeightDataProvider(Dictionary<Edge, int> edgeWeight)
+            {
+                _edgeWeight = edgeWeight;
+            }
+
+            public int GetInt(object dataHolder)
+            {
+                return _edgeWeight[(Edge)dataHolder];
+            }
+
+            public object Get(object dataHolder)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool GetBool(object dataHolder)
+            {
+                throw new NotImplementedException();
+            }
+
+            public double GetDouble(object dataHolder)
+            {
+                return _edgeWeight[(Edge)dataHolder];
+            }
+        }
+
+        private void buttonCreateViz_Click(object sender, RoutedEventArgs e)
+        {
+
+            if (dataBaseConnectedComponents2 == null)
+                return;
+            if (this.listBox1.SelectedIndex < 0)
+                return;
+            //Creating connectivity between Chinese words
+            BidirectionalGraph<Word, Edge<Word>> graph1 = dataBaseConnectedComponents2[this.listBox1.SelectedIndex];
+            SAT.SATConverter2 s = new SAT.SATConverter2();
+            BidirectionalGraph<Word, TaggedEdge<Word,int>> cConnectivitygraph =  s.Split(graph1);
+
+
+            // convert Chinese connectivity to int graph
+            Dictionary<Word, int> d = new Dictionary<Word, int>();
+            Dictionary<Edge<int>, TaggedEdge<Word,int>> p = new Dictionary<Edge<int>,TaggedEdge<Word,int>>();
+            BidirectionalGraph<int, TaggedEdge<int,int>> cConnectivityGraphInt = new BidirectionalGraph<int, TaggedEdge<int,int>>(true);
+
+            foreach (var item in cConnectivitygraph.Vertices)
+            {
+                d.Add(item, d.Count);
+            }
+            foreach (var item in cConnectivitygraph.Vertices)
+            {
+                cConnectivityGraphInt.AddVertex(d[item]);
+            }
+            foreach (var item in cConnectivitygraph.Edges)
+            {
+                cConnectivityGraphInt.AddEdge(new TaggedEdge<int,int>(d[item.Source], d[item.Target],item.Tag));
+                cConnectivityGraphInt.AddEdge(new TaggedEdge<int,int>(d[item.Target], d[item.Source], item.Tag));
+            }
+
+
+            // convert full graph to int graph
+            Dictionary<Word, int> d2 = new Dictionary<Word, int>();
+            BidirectionalGraph<int, Edge<int>> allConnectivityGraphInt2 = new BidirectionalGraph<int, Edge<int>>(true);
+            foreach (var item in DBHelper.WordRelaionGraph.Vertices)
+            {
+                d2.Add(item, d2.Count);
+            }
+            foreach (var item in DBHelper.WordRelaionGraph.Vertices)
+            {
+                allConnectivityGraphInt2.AddVertex(d2[item]);
+            }
+            foreach (var item in DBHelper.WordRelaionGraph.Edges)
+            {
+                allConnectivityGraphInt2.AddEdge(new Edge<int>(d2[item.Source], d2[item.Target]));
+                allConnectivityGraphInt2.AddEdge(new Edge<int>(d2[item.Target], d2[item.Source]));
+            }
+
+            //clustering prepare
+
+            Dictionary<Node,int> nodeToIdDict = new Dictionary<Node,int>();
+            Dictionary<int,Node> idToNodeDict = new Dictionary<int,Node>();
+            Dictionary<Edge,TaggedEdge<int,int>> edgeDict= new Dictionary<Edge,TaggedEdge<int,int>>();
+
+            Graph yGraph= new yWorks.yFiles.Algorithms.Graph();
+            Dictionary<Edge, int>  edgeWeight = new Dictionary<Edge,int>();
+         
+            
+            foreach (var item in cConnectivityGraphInt.Vertices)
+            {
+                yWorks.yFiles.Algorithms.Node node = yGraph.CreateNode();
+             
+                 nodeToIdDict.Add(node, item);
+                idToNodeDict.Add(item,node);
+               
+            }
+            foreach (var item in cConnectivityGraphInt.Edges)
+            {
+                Edge edge = yGraph.CreateEdge(idToNodeDict[item.Source], idToNodeDict[item.Target]);
+                   edgeDict.Add(edge, item);
+                edgeWeight.Add(edge,item.Tag);
+            }
+            
+            //start cluster
+            IDataProvider weighProvider = new WeightDataProvider(edgeWeight);
+            INodeMap nodeMap = yGraph.CreateNodeMap();
+
+            int clusters =  yWorks.yFiles.Algorithms.Groups.EdgeBetweennessClustering(yGraph, nodeMap, true, 2, 10, weighProvider);
+
+            foreach (var item in nodeToIdDict.Keys)
+            {
+                Debug.WriteLine(nodeMap.Get(item).ToString());
+            }
+
+            // yWorks.yFiles.Algorithms.Groups.EdgeBetweennessClustering(
+            //========================
+
+
+            return;
+            //Filter lowest connected edges
+
+            List<TaggedEdge<Word, int>> edgesWithLowWeight = new List<TaggedEdge<Word, int>>();
+
+            foreach (var item in edgesWithLowWeight)
+            {
+                int source = d[item.Source];
+                int target = d[item.Target];
+
+                if (cConnectivityGraphInt.Degree(source) == 2 || cConnectivityGraphInt.Degree(target) == 2)
+                    continue;
+
+                source = d2[item.Source];
+                target = d2[item.Target];
+
+                int pathCount = s.NumberOfPath(allConnectivityGraphInt2, source, target);
+                if (pathCount < 3)
+                {
+                    System.Diagnostics.Trace.WriteLine("1 Path Found.");
+                    System.IO.File.AppendAllText("low.txt", string.Format("{0}->{1}:{2}{4}", source, target, pathCount, Environment.NewLine));
+                }
+            }
+
+
+            return;
+
+            //==================
+
+
+            int skip = edgesWithLowWeight.Count / 1000;
+            if (skip > 0)
+            {
+                BidirectionalGraph<Word, Edge<Word>> tempGraph = DBHelper.CloneGraph(DBHelper.WordRelaionGraph);
+
+                int counter = 1000;
+                foreach (var item in edgesWithLowWeight)
+                {
+                    if (counter < 1000)
+                    {
+                        
+                        counter++;
+                        continue;
+                    }//Random cut
+
+                    Edge<Word> edgeToCut = null;
+                    var v1 = DBHelper.WordRelaionGraph.OutEdges(item.Source).Select(t=>t.Target);
+                    var v2 = DBHelper.WordRelaionGraph.OutEdges(item.Target).Select(t => t.Target);
+
+
+                    foreach (var i1 in v1)
+                    {
+                        foreach (var i2 in v2)
+                        {
+                            if (i1 == i2)
+                            {
+                                if (DBHelper.WordRelaionGraph.TryGetEdge(item.Source, i1, out edgeToCut))
+                                {
+                                    tempGraph.RemoveEdge(edgeToCut);
+                                    tempGraph.RemoveEdge(new Edge<Word>(i1,item.Source));
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+
+
+                    // v1 = DBHelper.WordRelaionGraph.InEdges(item.Source).Select(t => t.Target);
+                    // v2 = DBHelper.WordRelaionGraph.InEdges(item.Target).Select(t => t.Target);
+
+                    //foreach (var i1 in v1)
+                    //{
+                    //    foreach (var i2 in v2)
+                    //    {
+                    //        if (i1 == i2)
+                    //        {
+                    //            if (DBHelper.WordRelaionGraph.TryGetEdge(i1, item.Source, out edgeToCut))
+                    //                tempGraph.RemoveEdge(edgeToCut);
+                    //            break;
+                    //        }
+                    //    }
+                    //}
+
+                    counter = 0;
+                }
+
+                LoadConnectedComponets(tempGraph);
+            }
+
+
+         
+
+            return;
+
+
+            Dictionary<Word, int> dict = new Dictionary<Word, int>();
+            int index = 0;
+            foreach (var item in cConnectivitygraph.Vertices)
+            {
+                dict.Add(item, index++);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            foreach (var item in cConnectivitygraph.Edges)
+            {
+                sb.AppendLine(string.Format("{0} {1} {2}", dict[item.Source], dict[item.Target], item.Tag));
+                sb.AppendLine(string.Format("{0} {1} {2}", dict[item.Target], dict[item.Source], item.Tag));
+            }
+            System.IO.File.WriteAllText(@"d:/graph.txt", sb.ToString());
+
+            MessageBox.Show("Done!");
+        }
+    }
+}

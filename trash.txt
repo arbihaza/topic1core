@@ -1,0 +1,219 @@
+﻿                StringBuilder adjacentList = new StringBuilder();
+                adjacentList.AppendLine(string.Format("{0} {1}",fullGraphInt.VertexCount,fullGraphInt.EdgeCount/2));
+
+                foreach (var v in fullGraphInt.Vertices.OrderBy(t=>t))
+                {
+                    string line = string.Empty;
+                    foreach (var e in fullGraphInt.InEdges(v))
+                    {
+                        line = string.Format("{0} {1}",line,e.Source);
+                    }
+                    adjacentList.AppendLine(line);
+                }
+
+                System.IO.File.WriteAllText(@"d:\exchange1_adjacent.txt", adjacentList.ToString());
+                SortedDictionary<int, List<int>> clusters = new SortedDictionary<int, List<int>>();
+
+                var v1 = System.IO.File.ReadAllLines(@"d:\exchange1_adjacent.txt.part.150").Select(t => int.Parse(t)).ToList();
+                for (int i = 0; i < v1.Count; i++)
+                {
+                    int id = i + 1;
+                    if(clusters.ContainsKey(v1[i]))
+                        clusters[v1[i]].Add(id);
+                    else
+                    {
+                        List<int> l = new List<int>();
+                        l.Add(id);
+                        clusters.Add(v1[i], l);
+                    }
+                }
+                Dictionary<int, int> d = new Dictionary<int, int>();
+                BidirectionalGraph<int, Edge<int>> secondGraph = new BidirectionalGraph<int, Edge<int>>(false);
+                
+                foreach (var item in clusters[2])
+                {
+                    d.Add(item, d.Count + 1);
+                    secondGraph.AddVertex(d.Count);
+                }
+
+                foreach (var item in clusters[2])
+                {
+
+                    foreach (var item2 in fullGraphInt.InEdges(item))
+                    {
+                        if (!d.ContainsKey(item2.Source))
+                            continue;
+                        Edge<int> e = new Edge<int>(d[item2.Source], d[item2.Target]);
+                        secondGraph.AddEdge(e);
+                    }
+                }
+
+                StringBuilder adjacentList2 = new StringBuilder();
+                adjacentList2.AppendLine(string.Format("{0} {1}", secondGraph.VertexCount, secondGraph.EdgeCount / 2));
+
+                foreach (var v in secondGraph.Vertices.OrderBy(t => t))
+                {
+                    string line = string.Empty;
+                    foreach (var e in secondGraph.InEdges(v))
+                    {
+                        line = string.Format("{0} {1}", line, e.Source);
+                    }
+                    adjacentList2.AppendLine(line);
+                }
+
+                System.IO.File.WriteAllText(@"d:\exchange1_adjacent2.txt", adjacentList2.ToString());
+
+
+
+
+
+
+
+
+
+
+
+
+				            // convert full graph to int graph
+            Dictionary<Word, int> d2 = new Dictionary<Word, int>();
+            Dictionary<int, Word> d22 = new Dictionary<int, Word>(); 
+            BidirectionalGraph<int, Edge<int>> allConnectivityGraphInt2 = new BidirectionalGraph<int, Edge<int>>(true);
+            foreach (var item in graph1.Vertices)
+            {
+                d2.Add(item, d2.Count);
+                d22.Add(d22.Count, item);
+            }
+            foreach (var item in graph1.Vertices)
+            {
+                allConnectivityGraphInt2.AddVertex(d2[item]);
+            }
+            foreach (var item in graph1.Edges)
+            {
+                allConnectivityGraphInt2.AddEdge(new Edge<int>(d2[item.Source], d2[item.Target]));
+                allConnectivityGraphInt2.AddEdge(new Edge<int>(d2[item.Target], d2[item.Source]));
+            }
+
+            //clustering prepare
+
+            Dictionary<yWorks.yFiles.Algorithms.Node, int> nodeToIdDict = new Dictionary<yWorks.yFiles.Algorithms.Node, int>();
+            Dictionary<int, yWorks.yFiles.Algorithms.Node> idToNodeDict = new Dictionary<int, yWorks.yFiles.Algorithms.Node>();
+            //Dictionary<Edge,TaggedEdge<int,int>> edgeDict= new Dictionary<Edge,TaggedEdge<int,int>>();
+            Dictionary<yWorks.yFiles.Algorithms.Edge, Edge<int>> edgeDict = new Dictionary<yWorks.yFiles.Algorithms.Edge, Edge<int>>();
+            yWorks.yFiles.Algorithms.Graph yGraph= new yWorks.yFiles.Algorithms.Graph();
+            Dictionary<yWorks.yFiles.Algorithms.Edge, int> edgeWeight = new Dictionary<yWorks.yFiles.Algorithms.Edge, int>();
+
+
+            foreach (var item in allConnectivityGraphInt2.Vertices)
+            {
+                yWorks.yFiles.Algorithms.Node node = yGraph.CreateNode();
+             
+                 nodeToIdDict.Add(node, item);
+                idToNodeDict.Add(item,node);
+               
+            }
+            foreach (var item in allConnectivityGraphInt2.Edges)
+            {
+                yWorks.yFiles.Algorithms.Edge edge = yGraph.CreateEdge(idToNodeDict[item.Source], idToNodeDict[item.Target]);
+                   edgeDict.Add(edge, item);
+                edgeWeight.Add(edge,1);
+            }
+
+
+       
+            //start clustering
+            yWorks.yFiles.Algorithms.IDataProvider weighProvider = new WeightDataProvider(edgeWeight);
+            yWorks.yFiles.Algorithms.INodeMap nodeMap = yGraph.CreateNodeMap();
+
+            int clusters =  yWorks.yFiles.Algorithms.Groups.EdgeBetweennessClustering(yGraph, nodeMap, true, 1000, 2000, weighProvider);
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append("Clusters:"+clusters.ToString());
+
+            foreach (var item in nodeToIdDict.Keys)
+            {
+                int id = nodeMap.GetInt(item);
+                sb.AppendLine(string.Format("{0}  {1}   {2}", nodeToIdDict[item], id, d22[nodeToIdDict[item]].Value));
+            }
+            System.IO.File.AppendAllText("ppp.txt",sb.ToString());
+            MessageBox.Show("done");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			            //Creating connectivity between Chinese words
+            BidirectionalGraph<Word, Edge<Word>> graph1 = dataBaseConnectedComponents2[this.listBox1.SelectedIndex];
+            BidirectionalGraph<Word, Edge<Word>> graph2 = DBHelper.CloneGraph(DBHelper.WordRelaionGraph);
+
+
+            List<Word> uWords = graph2.Vertices.Where(t => t.Language == Console.Language.Uyghur).ToList();
+            List<Word> kWords = graph2.Vertices.Where(t => t.Language == Console.Language.Kazak).ToList();
+
+            List<string> uWordsStr = new List<string>(uWords.Count);
+            List<string> kWordsStr = new List<string>(kWords.Count);
+
+            for (int i = 0; i < uWords.Count; i++)
+            {
+                uWordsStr.Add(DBHelper.Syn.getUKYFromUy(uWords[i].Value));
+            }
+            for (int i = 0; i < kWords.Count; i++)
+            {
+                kWordsStr.Add(DBHelper.Syn.getLtFromKz(kWords[i].Value));
+            }
+
+            int from1 = 0;
+            int lenth1 = uWords.Count / 4;
+            int lastLength = uWords.Count % 4;
+
+
+            Task<Dictionary<int,int>> t1 = Task.Factory.StartNew(() => similarity(uWordsStr, kWordsStr, from1, lenth1));
+            Task<Dictionary<int, int>> t2 = Task.Factory.StartNew(() => similarity(uWordsStr, kWordsStr, from1 + lenth1, lenth1));
+            Task<Dictionary<int, int>> t3 = Task.Factory.StartNew(() => similarity(uWordsStr, kWordsStr, from1 + 2*lenth1, lenth1));
+            Task<Dictionary<int, int>> t4 = Task.Factory.StartNew(() => similarity(uWordsStr, kWordsStr, from1 + 3*lenth1, lenth1));
+            Task<Dictionary<int, int>> t5 = Task.Factory.StartNew(() => similarity(uWordsStr, kWordsStr, from1 + 4 * lenth1, lastLength));
+            Task.WaitAll(t1,t2,t3,t4,t5);
+
+
+            Dictionary<int, int> result = new Dictionary<int, int>();
+            foreach (var item in t1.Result)
+                result.Add(item.Key, item.Value);
+            foreach (var item in t2.Result)
+                result.Add(item.Key, item.Value);
+            foreach (var item in t3.Result)
+                result.Add(item.Key, item.Value);
+            foreach (var item in t4.Result)
+                result.Add(item.Key, item.Value);
+            foreach (var item in t5.Result)
+                result.Add(item.Key, item.Value);
+
+
+            StringBuilder resultBuffer = new StringBuilder();
+            foreach (var item in result)
+                resultBuffer.AppendLine(string.Format("{0} {1}", item.Key, item.Value));
+            System.IO.File.AppendAllText("remove.txt", resultBuffer.ToString());
+
+
+            foreach (var item in result)
+            {
+                graph2.RemoveVertex(uWords[item.Key]);
+                graph2.RemoveVertex(kWords[item.Value]);
+
+            }
+
+            LoadConnectedComponets(graph2);
+
+            //LoadConnectedComponets(ggg);
+            MessageBox.Show("Done");
+            return;

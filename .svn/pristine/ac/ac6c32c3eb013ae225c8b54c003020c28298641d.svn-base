@@ -1,0 +1,50 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using QuickGraph;
+using QuickGraph.Algorithms.MaximumFlow;
+
+namespace HDictInduction.Console.SAT
+{
+    class SATTemp
+    {
+        private static BidirectionalGraph<Word, Edge<Word>> gr;
+
+        static Edge<Word> MyEdgeFactory(Word source, Word target)
+        {
+            Edge<Word> e =  null;
+            if (gr.TryGetEdge(source, target, out e))
+                return e;
+            return new Edge<Word>(source, target);
+        }
+
+        static double ComputeCapacity(Edge<Word> curEdge)
+        {
+                return 0; //you may want to put unused reversed edge to 0
+        }
+
+        static public Dictionary<Edge<Word>, double> edgeCapacitiesDictionary = new Dictionary<Edge<Word>, double>();
+
+        public static void Main(BidirectionalGraph<Word, Edge<Word>> g)
+        {
+
+            gr = g;
+            foreach (var item in g.Edges)
+            {
+                //edgeCapacitiesDictionary.Add(item, 0);
+            }
+            var reversedEdgeAugmentor = new ReversedEdgeAugmentorAlgorithm<Word, Edge<Word>>(g, MyEdgeFactory);
+            reversedEdgeAugmentor.AddReversedEdges();
+
+            // (other option) new PushRelabelMaximumFlowAlgorithm
+            MaximumFlowAlgorithm<Word, Edge<Word>> algo = new EdmondsKarpMaximumFlowAlgorithm<Word, Edge<Word>>(g, ComputeCapacity, reversedEdgeAugmentor.ReversedEdges);
+       
+            algo.Compute();
+            //algo.Compute(source, sink);
+            
+
+            //return algo.MaxFlow;
+        }
+    }
+}

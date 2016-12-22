@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HDictInduction.Console", "HDictInduction.Console.csproj", "{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Arbi|Any CPU = Arbi|Any CPU
+		Arbi|Mixed Platforms = Arbi|Mixed Platforms
+		Arbi|x64 = Arbi|x64
+		Arbi|x86 = Arbi|x86
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|Any CPU.ActiveCfg = Arbi|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|Mixed Platforms.ActiveCfg = Arbi|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|Mixed Platforms.Build.0 = Arbi|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|x64.ActiveCfg = Arbi|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|x64.Build.0 = Arbi|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|x86.ActiveCfg = Arbi|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Arbi|x86.Build.0 = Arbi|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|x64.ActiveCfg = Debug|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|x64.Build.0 = Debug|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|x86.ActiveCfg = Debug|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Debug|x86.Build.0 = Debug|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|Any CPU.ActiveCfg = Release|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|Mixed Platforms.Build.0 = Release|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|x64.ActiveCfg = Release|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|x64.Build.0 = Release|x64
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|x86.ActiveCfg = Release|x86
+		{42EAEA80-B019-4F1A-8AC3-CB7C46733CBC}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		VisualSVNWorkingCopyRoot = .
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = HDictInduction.Console.vsmdi
+	EndGlobalSection
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
+	EndGlobalSection
+EndGlobal

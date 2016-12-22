@@ -1,0 +1,93 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using HDictInduction.Console.Heuristics;
+
+namespace HDictInduction.Console.Resources
+{
+    /// <summary>
+    /// Interaction logic for NodeControl.xaml
+    /// </summary>
+    public partial class NodeControl: INodeControl
+    {
+        public event EventHandler MouseEnter;
+
+        public event EventHandler MouseLeave;
+
+        private string _nodeMark = "x";
+
+        public string NodeMark
+        {
+            get { return this._nodeMark; }
+            set { this._nodeMark = value;
+            }
+        }
+
+        private Word _word;
+
+        public Word Word
+        {
+            get { return _word; }
+            set
+            {
+                this.Word = value;
+            }
+        }
+
+        public Brush Brush
+        {
+            get
+            {
+                if (Word.Language == HDictInduction.Console.Language.Chinese)
+                {
+                    return GlobalStore.Brush_C;
+                }
+                else if (Word.Language == HDictInduction.Console.Language.Uyghur)
+                {
+                    return GlobalStore.Brush_U;
+                }
+                else if (Word.Language == HDictInduction.Console.Language.Kazak)
+                {
+                    return GlobalStore.Brush_K;
+                }
+                else
+                {
+                    return GlobalStore.Brush_None;
+                }
+            }
+        }
+
+        public NodeControl(string nodeMark, Word word)
+        {
+            this._word = word;
+            this._nodeMark = nodeMark;
+            InitializeComponent();
+        }
+
+        public override string ToString()
+        {
+            return _nodeMark;
+        }
+        private void label1_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (this.MouseEnter != null)
+                this.MouseEnter(this, e);
+        }
+
+        private void label1_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (this.MouseLeave != null)
+                this.MouseLeave(this, e);
+        }
+    }
+}

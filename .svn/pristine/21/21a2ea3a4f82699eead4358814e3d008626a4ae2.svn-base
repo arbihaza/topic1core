@@ -1,0 +1,1294 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Data;
+using System.Text.RegularExpressions;
+using System.Linq;
+using System.Linq.Expressions;
+using HDictInduction.Console;
+using HDictInduction.Console.zuk_dbDataSetTableAdapters;
+using System.IO;
+using System.Threading;
+using System.ComponentModel;
+using System.Windows;
+using QuickGraph;
+using HDictInduction.Console.Resources;
+using HDictInduction.Console.Heuristics;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using QuickGraph.Algorithms.ConnectedComponents;
+
+namespace HDictInduction.Console
+{
+    class DBHelper
+    {
+        public static BidirectionalGraph<Word, Edge<Word>> WordRelaionGraph = null;
+
+        public enum Language { Uyghur, Kazak, Chinese };
+        
+        private static DictBase _DictBase;
+
+        private static zuk_dbDataSet.zuk_fixedDataTable _ZukTable;
+
+        public static DictBase MyDictBase {
+            get { return _DictBase; }
+        }
+
+        private static Syntax _Syn = null;
+
+        public static Syntax Syn
+        {
+            get { if (_Syn == null) _Syn = new Syntax();
+            return _Syn;
+            }
+        }
+      
+        public System.Data.DataTable XmlToDataTable(string fileName)
+        {
+            //read into dataset
+            DataSet dataSet = new DataSet();
+            dataSet.ReadXml(fileName);
+
+            //return single table inside of dataset
+            return dataSet.Tables[0];
+        }
+
+        public void WriteTextToTempFile(string content)
+        {
+            string fileName = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "temp.txt");
+            System.IO.File.WriteAllText(fileName, content);
+        }
+
+        public void WriteLinesToTempFile(string[] content)
+        {
+            string fileName = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "temp.txt");
+            System.IO.File.WriteAllLines(fileName, content);
+        }
+
+        public void WriteDBtoXML()
+        {
+            string fileName = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "temp.xml");
+            HDictInduction.Console.zuk_dbDataSetTableAdapters.zuk_fixedTableAdapter zukAdapter = new HDictInduction.Console.zuk_dbDataSetTableAdapters.zuk_fixedTableAdapter();
+            zuk_dbDataSet.zuk_fixedDataTable zukTable = new zuk_dbDataSet.zuk_fixedDataTable();
+            zukAdapter.Fill(zukTable);
+
+            zukTable.WriteXml(fileName);
+        }
+
+
+        public static void GenerateDatabase(List<string> filterUWords, List<string> filterKWords)
+        {
+            _DictBase = GenerateDatabaseFull(filterUWords, filterKWords);
+        }
+
+        public static QuickGraph.UndirectedGraph<string, Edge<string>> GenerateDatabaseFull()
+        {
+            string[] lines = System.IO.File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "new_CnUy2007.txt"));
+            Dictionary<string, string> irpan = new Dictionary<string, string>();
+            foreach (var item in lines)
+            {
+                string c = item.Split('\t')[0];
+                string u = item.Split('\t')[1];
+
+                if (irpan.ContainsKey(c))
+                    continue;
+                irpan.Add(c, u);
+            }
+
+            char[] spliter = new char[] { '؛' };
+            DictBase dictBase = new DictBase();
+            Dictionary<string, int> cWordDict = new Dictionary<string, int>();
+            Dictionary<string, int> uWordDict = new Dictionary<string, int>();
+            Dictionary<string, int> kWordDict = new Dictionary<string, int>();
+
+            Dictionary<int, string> ccWordDict = new Dictionary<int, string>();
+            Dictionary<int, string> uuWordDict = new Dictionary<int, string>();
+            Dictionary<int, string> kkWordDict = new Dictionary<int, string>();
+
+            QuickGraph.UndirectedGraph<string, Edge<string>> graph = new UndirectedGraph<string, Edge<string>>(false);
+
+            zuk_dbDataSet.zuk_fixedDataTable zukTable = new zuk_dbDataSet.zuk_fixedDataTable();
+            zukTable.ReadXml(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "zukTable.xml"));
+
+            foreach (zuk_dbDataSet.zuk_fixedRow row in zukTable)
+            {
+                string strChinese = row.Zh.Trim();
+                string[] strUyghurs;// = row.Ug.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+                if (irpan.ContainsKey(strChinese))
+                {
+                    strUyghurs = irpan[strChinese].Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+                }
+                else
+                    strUyghurs = row.Ug.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+                string[] strKazaks = row.Kz.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+
+                //trim  
+                for (int i = 0; i < strUyghurs.Length; i++)
+                {
+                    strUyghurs[i] = strUyghurs[i].Trim();
+                }
+                for (int i = 0; i < strKazaks.Length; i++)
+                {
+                    strKazaks[i] = strKazaks[i].Trim();
+                }
+
+                //add to db
+                int cID = cWordDict.Count;
+                cWordDict.Add(strChinese, cID);
+                ccWordDict.Add(cID,strChinese);
+                graph.AddVertex("c" + cID);
+
+                //u
+                for (int i = 0; i < strUyghurs.Length; i++)
+                {
+                    if (!uWordDict.ContainsKey(strUyghurs[i]))
+                    {
+                        int uID = uWordDict.Count;
+                        uWordDict.Add(strUyghurs[i], uID);
+                        uuWordDict.Add(uID, strUyghurs[i]);
+                        graph.AddVertex("u" + uID);
+                        graph.AddEdge(new Edge<string>("c" + cID.ToString(), "u" + uID.ToString()));
+                    }
+                    else
+                        graph.AddEdge(new Edge<string>("c" + cID, "u" + uWordDict[strUyghurs[i]]));
+                }
+
+                //k
+                for (int i = 0; i < strKazaks.Length; i++)
+                {
+                    if (!kWordDict.ContainsKey(strKazaks[i]))
+                    {
+                        int kID = kWordDict.Count;
+                        kWordDict.Add(strKazaks[i], kID);
+                        kkWordDict.Add(kID, strKazaks[i]);
+                        graph.AddVertex("k" + kID);
+                        graph.AddEdge(new Edge<string>("c" + cID.ToString(), "k" + kID.ToString()));
+                    }
+                    graph.AddEdge(new Edge<string>("c" + cID, "k" +kWordDict[strKazaks[i]]));
+                }
+            }
+
+
+
+            var maxU = graph.Vertices.Where<string>(t => t.StartsWith("u")).OrderByDescending(t => graph.AdjacentEdges(t).Count());
+            var maxU2 = maxU.ToDictionary(t => uuWordDict[int.Parse(t.TrimStart('u'))],t=>graph.AdjacentEdges(t).Count());
+
+            var maxK = graph.Vertices.Where<string>(t => t.StartsWith("k")).OrderByDescending(t => graph.AdjacentEdges(t).Count());
+            var maxK2 = maxK.ToDictionary(t => kkWordDict[int.Parse(t.TrimStart('k'))], t => graph.AdjacentEdges(t).Count());
+            //Test
+
+            foreach (var item in maxU2)
+            {
+                if (item.Value >1)
+                    continue;
+                graph.RemoveVertex("u" + uWordDict[item.Key]);
+            }
+
+            foreach (var item in maxK2)
+            {
+                if (item.Value >1)
+                    continue;
+                graph.RemoveVertex("k" + kWordDict[item.Key]);
+            }
+
+
+            IncrementalConnectedComponentsAlgorithm<string, Edge<string>>
+            a = new IncrementalConnectedComponentsAlgorithm<string, Edge<string>>(graph as IMutableVertexAndEdgeSet<string, Edge<string>>);
+            a.Compute();
+
+            KeyValuePair<int, IDictionary<string, int>> components = a.GetComponents();
+            List<BidirectionalGraph<string, Edge<string>>> connectedComponents = new List<BidirectionalGraph<string, Edge<string>>>(components.Key);
+            var grouped = components.Value.GroupBy(t => t.Value);
+
+            foreach (var group in grouped)
+            {
+                BidirectionalGraph<string, Edge<string>> g = new BidirectionalGraph<string, Edge<string>>(true, group.Count());
+
+                foreach (var item in group)
+                {
+                    g.AddVertex(item.Key);
+                }
+
+                foreach (var item in g.Vertices)
+                {
+                    g.AddEdgeRange(graph.AdjacentEdges(item));
+                }
+
+                connectedComponents.Add(g);
+            }
+
+            var connectedComponentsSorted = connectedComponents.OrderByDescending(t => t.VertexCount).ToList();
+
+
+            return graph;
+        }
+
+        private static DictBase GenerateDatabaseFull(List<string> filterUWords, List<string> filterKWords)
+        {
+            //------------
+            string[] lines = System.IO.File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "new_CnUy2007.txt"));
+            //string[] freqWords = System.IO.File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "freqwords.txt"));
+            Dictionary<string, string> irpan = new Dictionary<string, string>();
+            foreach (var item in lines)
+            {
+                string c = item.Split('\t')[0];
+                string u = item.Split('\t')[1];
+
+                if (irpan.ContainsKey(c))
+                    continue;
+                irpan.Add(c, u);
+            }
+
+            //string[] lines_preStepResult = System.IO.File.ReadAllLines(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bi_pairs_preStep.txt"));
+            Dictionary<string, bool> filterUWords_dict = new Dictionary<string, bool>();
+            Dictionary<string, bool> filterKWords_dict = new Dictionary<string, bool>();
+
+            foreach (var item in filterUWords)
+            {
+                filterUWords_dict.Add(item,true);
+            }
+
+            foreach (var item in filterKWords)
+            {
+                filterKWords_dict.Add(item, true);
+            }
+
+            char[] spliter = new char[] { '؛' };
+            DictBase dictBase = new DictBase();
+
+
+            Dictionary<string, int> cWordDict = new Dictionary<string, int>();
+            Dictionary<string, int> uWordDict = new Dictionary<string, int>();
+            Dictionary<string, int> kWordDict = new Dictionary<string, int>();
+
+
+            /*
+             * 
+            HDictInduction.Console.zuk_dbDataSetTableAdapters.zuk_fixedTableAdapter zukAdapter = new zuk_fixedTableAdapter();
+            zuk_dbDataSet.zuk_fixedDataTable zukTable = new zuk_dbDataSet.zuk_fixedDataTable();
+            zukAdapter.Fill(zukTable);
+             */
+
+            zuk_dbDataSet.zuk_fixedDataTable zukTable = new zuk_dbDataSet.zuk_fixedDataTable();
+            if (_ZukTable != null)
+            {
+                zukTable = _ZukTable;
+            }
+            else
+            {
+            zukTable.ReadXml(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "zukTable.xml"));
+                _ZukTable = zukTable;
+            }
+
+            //zukTable.WriteXml("zukTable.xml");
+            
+            
+            
+            int tmpCount = 0;
+
+            foreach (zuk_dbDataSet.zuk_fixedRow row in zukTable)
+            {
+                string strChinese = row.Zh.Trim();
+
+                string[] strUyghurs;// = row.Ug.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+                
+                if (irpan.ContainsKey(strChinese))
+                {
+                    strUyghurs = irpan[strChinese].Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+                    tmpCount++;
+                }
+                else
+                    strUyghurs = row.Ug.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+                string[] strKazaks = row.Kz.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+
+                //trim  
+                for (int i = 0; i < strUyghurs.Length; i++)
+                {
+                    strUyghurs[i] = strUyghurs[i].Trim();
+                }
+                for (int i = 0; i < strKazaks.Length; i++)
+                {
+                    strKazaks[i] = strKazaks[i].Trim();
+                }
+
+                strUyghurs = strUyghurs.Distinct().ToArray();
+                strKazaks = strKazaks.Distinct().ToArray();
+
+
+                if (true)
+                {
+                    List<string> strUyghurs_temp = new List<string>(strUyghurs.Length);
+                    foreach (var item in strUyghurs)
+                    {
+                        if (!filterUWords_dict.ContainsKey(item))
+                            strUyghurs_temp.Add(item);
+                    }
+                    strUyghurs = strUyghurs_temp.ToArray();
+
+                    List<string> strKazaks_temp = new List<string>(strKazaks.Length);
+                    foreach (var item in strKazaks)
+                    {
+                        if (!filterKWords_dict.ContainsKey(item))
+                            strKazaks_temp.Add(item);
+                    }
+                    strKazaks = strKazaks_temp.ToArray();
+
+
+                    if (strUyghurs.Length == 0 || strKazaks.Length == 0)
+                    {
+                        //Debug.WriteLine(string.Format("Ignored: {0}", strChinese));
+                        continue;
+                    }
+
+                }
+
+
+
+                int[] strUyghursIDs = new int[strUyghurs.Length];
+                int[] strKazaksIDs = new int[strKazaks.Length];
+
+                int cID = cWordDict.Count;
+                if (cWordDict.ContainsKey(strChinese))
+                    throw new Exception("Multiple Chinese Word!");
+                else
+                    cWordDict.Add(strChinese, cID);
+
+                //u
+                for (int i = 0; i < strUyghurs.Length; i++)
+                {
+                    if (!uWordDict.ContainsKey(strUyghurs[i]))
+                    {
+                        strUyghursIDs[i] = uWordDict.Count;
+                        uWordDict.Add(strUyghurs[i], uWordDict.Count);
+                    }
+                    else
+                        strUyghursIDs[i] = uWordDict[strUyghurs[i]];
+                }
+
+                //k
+                for (int i = 0; i < strKazaks.Length; i++)
+                {
+                    if (!kWordDict.ContainsKey(strKazaks[i]))
+                    {
+                        strKazaksIDs[i] = kWordDict.Count;
+                        kWordDict.Add(strKazaks[i], kWordDict.Count);
+                    }
+                    else
+                        strKazaksIDs[i] = kWordDict[strKazaks[i]];
+                }
+
+                //c
+                dictBase.CUDictbase.CtoU.Add(cID, strUyghursIDs);
+                dictBase.CKDictbase.CtoK.Add(cID, strKazaksIDs);
+
+                //u
+                foreach (int item in strUyghursIDs)
+                {
+                    if (!dictBase.CUDictbase.UtoC.ContainsKey(item))
+                    {
+                        dictBase.CUDictbase.UtoC.Add(item, new int[1] { cID });
+                    }
+                    else
+                    {
+                        int[] array = dictBase.CUDictbase.UtoC[item];
+                        if (!array.Contains(cID))
+                        {
+                            Array.Resize(ref array, array.Length + 1);
+                            array[array.Length - 1] = cID;
+                            dictBase.CUDictbase.UtoC[item] = array;
+                        }
+                    }
+                }
+
+                //k
+                foreach (int item in strKazaksIDs)
+                {
+                    if (!dictBase.CKDictbase.KtoC.ContainsKey(item))
+                    {
+                        dictBase.CKDictbase.KtoC.Add(item, new int[1] { cID });
+                    }
+                    else
+                    {
+                        int[] array = dictBase.CKDictbase.KtoC[item];
+                        if (!array.Contains(cID))
+                        {
+                            Array.Resize(ref array, array.Length + 1);
+                            array[array.Length - 1] = cID;
+                            dictBase.CKDictbase.KtoC[item] = array;
+                        }
+                    }
+                }
+            }
+            dictBase.CWords = cWordDict.Keys.ToArray();
+            dictBase.KWords = kWordDict.Keys.ToArray();
+            dictBase.UWords = uWordDict.Keys.ToArray();
+            return dictBase;
+        }
+
+        //private static DictBase GenerateDatabaseTrimmed()
+        //{
+        //    Dictionary<string, bool> aloneDictionary = getCWordsWithOneToOne();
+
+        //    char[] spliter = new char[] { '؛' };
+        //    DictBase dictBase = new DictBase();
+
+
+        //    Dictionary<string, int> cWordDict = new Dictionary<string, int>();
+        //    Dictionary<string, int> uWordDict = new Dictionary<string, int>();
+        //    Dictionary<string, int> kWordDict = new Dictionary<string, int>();
+
+
+        //    HDictInduction.Console.zuk_dbDataSetTableAdapters.zuk_fixedTableAdapter zukAdapter = new zuk_fixedTableAdapter();
+        //    zuk_dbDataSet.zuk_fixedDataTable zukTable = new zuk_dbDataSet.zuk_fixedDataTable();
+        //    zukAdapter.Fill(zukTable);
+
+        //    foreach (zuk_dbDataSet.zuk_fixedRow row in zukTable)
+        //    {
+        //        string strChinese = row.Zh.Trim();
+
+        //        if (aloneDictionary.ContainsKey(strChinese))
+        //            continue;
+
+        //        string[] strUyghurs = row.Ug.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+        //        string[] strKazaks = row.Kz.Split(spliter, StringSplitOptions.RemoveEmptyEntries);
+
+        //        int[] strUyghursIDs = new int[strUyghurs.Length];
+        //        int[] strKazaksIDs = new int[strKazaks.Length];
+
+        //        int cID = cWordDict.Count;
+        //        if (cWordDict.ContainsKey(strChinese))
+        //            cID = cWordDict[strChinese];
+        //        else
+        //            cWordDict.Add(strChinese, cID);
+
+        //        //u
+        //        for (int i = 0; i < strUyghurs.Length; i++)
+        //        {
+        //            strUyghurs[i] = strUyghurs[i].Trim();
+        //            if (!uWordDict.ContainsKey(strUyghurs[i]))
+        //            {
+        //                strUyghursIDs[i] = uWordDict.Count;
+        //                uWordDict.Add(strUyghurs[i], uWordDict.Count);
+        //            }
+        //            else
+        //                strUyghursIDs[i] = uWordDict[strUyghurs[i]];
+        //        }
+
+        //        //k
+        //        for (int i = 0; i < strKazaks.Length; i++)
+        //        {
+        //            strKazaks[i] = strKazaks[i].Trim();
+        //            if (!kWordDict.ContainsKey(strKazaks[i]))
+        //            {
+        //                strKazaksIDs[i] = kWordDict.Count;
+        //                kWordDict.Add(strKazaks[i], kWordDict.Count);
+        //            }
+        //            else
+        //                strKazaksIDs[i] = kWordDict[strKazaks[i]];
+        //        }
+
+        //        //c
+        //        dictBase.CUDictbase.CtoU.Add(cID, strUyghursIDs);
+        //        dictBase.CKDictbase.CtoK.Add(cID, strKazaksIDs);
+
+        //        //u
+        //        foreach (int item in strUyghursIDs)
+        //        {
+        //            if (!dictBase.CUDictbase.UtoC.ContainsKey(item))
+        //            {
+        //                dictBase.CUDictbase.UtoC.Add(item, new int[1] { cID });
+        //            }
+        //            else
+        //            {
+        //                int[] array = dictBase.CUDictbase.UtoC[item];
+        //                if (!array.Contains(cID))
+        //                {
+        //                    Array.Resize(ref array, array.Length + 1);
+        //                    array[array.Length - 1] = cID;
+        //                    dictBase.CUDictbase.UtoC[item] = array;
+        //                }
+        //            }
+        //        }
+
+        //        //k
+        //        foreach (int item in strKazaksIDs)
+        //        {
+        //            if (!dictBase.CKDictbase.KtoC.ContainsKey(item))
+        //            {
+        //                dictBase.CKDictbase.KtoC.Add(item, new int[1] { cID });
+        //            }
+        //            else
+        //            {
+        //                int[] array = dictBase.CKDictbase.KtoC[item];
+        //                if (!array.Contains(cID))
+        //                {
+        //                    Array.Resize(ref array, array.Length + 1);
+        //                    array[array.Length - 1] = cID;
+        //                    dictBase.CKDictbase.KtoC[item] = array;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    dictBase.CWords = cWordDict.Keys.ToArray();
+        //    dictBase.KWords = kWordDict.Keys.ToArray();
+        //    dictBase.UWords = uWordDict.Keys.ToArray();
+
+        //    return dictBase;
+        //}
+        
+        private static Dictionary<string, bool> getCWordsWithOneToOne()
+        {
+            Dictionary<string, bool> result = new Dictionary<string, bool>();
+            for (int cId = 0; cId < _DictBase.CWords.Length; cId++)
+            {
+                bool isAlone = true;
+                int[] uIds = _DictBase.CUDictbase.CtoU[cId];
+                int[] kIds = _DictBase.CKDictbase.CtoK[cId];
+
+                if (uIds.Length > 1)
+                    isAlone = false;
+                if (kIds.Length > 1)
+                    isAlone = false;
+                if (isAlone == true)
+                    if (_DictBase.CUDictbase.UtoC[uIds[0]].Length > 1)
+                        isAlone = false;
+                if (isAlone == true)
+                    if (_DictBase.CKDictbase.KtoC[kIds[0]].Length > 1)
+                        isAlone = false;
+                if (isAlone)
+                    result.Add(_DictBase.CWords[cId], true);
+            }
+            return result;
+        }
+
+        public static Dictionary<string, string> GetCWordsWithOneToOne()
+        {
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            for (int cId = 0; cId < _DictBase.CWords.Length; cId++)
+            {
+                bool isAlone = true;
+                int[] uIds = _DictBase.CUDictbase.CtoU[cId];
+                int[] kIds = _DictBase.CKDictbase.CtoK[cId];
+
+                if (uIds.Length > 1)
+                    isAlone = false;
+                if (kIds.Length > 1)
+                    isAlone = false;
+                if (isAlone == true)
+                    if (_DictBase.CUDictbase.UtoC[uIds[0]].Length > 1)
+                        isAlone = false;
+                if (isAlone == true)
+                    if (_DictBase.CKDictbase.KtoC[kIds[0]].Length > 1)
+                        isAlone = false;
+                if (isAlone)
+                    result.Add(_DictBase.UWords[uIds[0]], _DictBase.KWords[kIds[0]]);
+            }
+            return result;
+        }
+        
+        public static int LD(string sRow, string sCol)
+        {
+            int RowLen = sRow.Length;  // نىڭ ئۇزۇنلۇقى sRow
+            int ColLen = sCol.Length;  // نىڭ ئۇزۇنلۇقى sCol
+            int RowIdx;                // نىڭ زىيارەتچى ئىندىكىسى sRow
+            int ColIdx;                // نىڭ زىيارەتچى ئىندىكىسى sCol
+            char Row_i;                // نىڭ ئاي ئىنچى ھەرپى sRow
+            char Col_j;                // نىڭ جى ئىنچى ھەرپى sCol
+            int cost;                  // چىقىم
+
+            //بىرىنچى قەدەم
+
+            /// ئىككى دانە ۋېكتور قۇرۇش
+            int[] v0 = new int[RowLen + 1];
+            int[] v1 = new int[RowLen + 1];
+            int[] vTmp;
+
+            /// ئىككىنچى قەدەم
+            /// بىرىنچى ۋېكتورنى دەسلەپلەشتۈرۈش
+            for (RowIdx = 1; RowIdx <= RowLen; RowIdx++)
+                v0[RowIdx] = RowIdx;
+
+            //ئۈچۈنچى قەدەم
+
+            /// ستوندىكى ھەربىر ھەرتپنى زىيارەت قىلىش
+            for (ColIdx = 1; ColIdx <= ColLen; ColIdx++)
+            {
+                /// Set the 0'th element to the column number
+                v1[0] = ColIdx;
+
+                Col_j = sCol[ColIdx - 1];
+
+                // تۆتىنچى قەدەم
+
+                // قۇردىكى ھەربىر ھەرپىنى زىيارەت قىلىش
+                for (RowIdx = 1; RowIdx <= RowLen; RowIdx++)
+                {
+                    Row_i = sRow[RowIdx - 1];
+                    // بەشىنچى قەدەم
+                    cost = Row_i == Col_j ? 0 : 1;
+                    // ئالتىنچى قەدەم
+
+                    /// كىچىكىنى تېپىش
+                    int m_min = v0[RowIdx] + 1;
+                    int b = v1[RowIdx - 1] + 1;
+                    int c = v0[RowIdx - 1] + cost;
+
+                    if (b < m_min)
+                        m_min = b;
+                    if (c < m_min)
+                        m_min = c;
+
+                    v1[RowIdx] = m_min;
+                }
+
+                /// ۋېكتورلارنى ئالماشتۇرۇش
+                vTmp = v0;
+                v0 = v1;
+                v1 = vTmp;
+            }
+
+
+            // يەتتىنچى قەدەم
+
+            //Value between 0 - 100
+            //0==perfect match 100==totaly different
+
+            //The vectors where swaped one last time at the end of the last loop,
+            //that is why the result is now in v0 rather than in v1
+            //int max = System.Math.Max(RowLen, ColLen);
+            //return ((100 * v0[RowLen]) / max);
+
+            return v0[RowLen];
+            //return v0[RowLen];
+        }
+
+        public static float iLD(String sRow, String sCol)
+        {
+            int RowLen = sRow.Length;  // length of sRow
+            //int RowLen = sRow.Length;  // length of sRow
+            int ColLen = sCol.Length;  // length of sCol
+            int RowIdx;                // iterates through sRow
+            int ColIdx;                // iterates through sCol
+            char Row_i;                // ith character of sRow
+            char Col_j;                // jth character of sCol
+            int cost;                   // cost
+
+            // Step 1
+
+            /// Create the two vectors
+            int[] v0 = new int[RowLen + 1];
+            int[] v1 = new int[RowLen + 1];
+            int[] vTmp;
+
+            /// Step 2
+            /// Initialize the first vector
+            for (RowIdx = 1; RowIdx <= RowLen; RowIdx++)
+                v0[RowIdx] = RowIdx;
+
+            // Step 3
+
+            /// Fore each column
+            for (ColIdx = 1; ColIdx <= ColLen; ColIdx++)
+            {
+                /// Set the 0'th element to the column number
+                v1[0] = ColIdx;
+
+                Col_j = sCol[ColIdx - 1];
+
+                // Step 4
+
+                // Fore each row
+                for (RowIdx = 1; RowIdx <= RowLen; RowIdx++)
+                {
+                    Row_i = sRow[RowIdx - 1];
+                    // Step 5
+                    cost = Row_i == Col_j ? 0 : 1;
+                    // Step 6
+
+                    /// Find minimum
+                    int m_min = v0[RowIdx] + 1;
+                    int b = v1[RowIdx - 1] + 1;
+                    int c = v0[RowIdx - 1] + cost;
+
+                    if (b < m_min)
+                        m_min = b;
+                    if (c < m_min)
+                        m_min = c;
+
+                    v1[RowIdx] = m_min;
+                }
+
+                /// Swap the vectors
+                vTmp = v0;
+                v0 = v1;
+                v1 = vTmp;
+            }
+
+
+            // Step 7
+
+            /// Value between 0 - 100
+            /// 0==perfect match 100==totaly different
+            /// 
+            /// The vectors where swaped one last time at the end of the last loop,
+            /// that is why the result is now in v0 rather than in v1
+            //int max = System.Math.Max(RowLen, ColLen);
+            //return ((100 * v0[RowLen]) / max);
+
+            //return v0[RowLen];
+
+            float l = RowLen > ColLen ? RowLen : ColLen;
+
+            float db = 1 - (v0[RowLen] / l);
+            float result =  (float)Math.Round(db, 5);
+            if (result == 0f)
+                return 0.00001f;
+            else
+                return result;
+        }
+
+        public IList<int> GetSubGraph(string clueWord, Language lang)
+        {
+            GraphFinder finder = new GraphFinder();
+            IList<int> result = finder.GetLinkedCWords2(clueWord);
+            return result;
+        }
+
+        public IList<int> GetSubGraph(int clueWord, Language lang)
+        {
+            GraphFinder finder = new GraphFinder();
+            IList<int> result = finder.GetLinkedCWords2(clueWord);
+            return result;
+        }
+
+        private class GraphFinder
+        {
+            int depht1 = 0;
+            int depht2 = 0;
+            //private List<NtoNDictbase> databse = null;
+            private DictBase databse = null;
+            private Dictionary<int, bool> cWordList1 = null;
+            private Dictionary<int, bool> cWordList2 = null;
+            private Dictionary<int, bool> uWordList = null;
+            private Dictionary<int, bool> kWordList = null;
+            private Thread _thread = null;
+
+            private List<string> Reulst = null;
+
+            public GraphFinder()
+            {
+                this.databse = DBHelper.MyDictBase;
+                cWordList1 = new Dictionary<int, bool>();
+                cWordList2 = new Dictionary<int, bool>();
+                uWordList = new Dictionary<int, bool>();
+                kWordList = new Dictionary<int, bool>();
+               
+            }
+
+            public IList<int> GetLinkedCWords2(int clueWord)
+            {
+                int clueWordID = clueWord;
+
+                Dictionary<int, bool> cWordsVizited = new Dictionary<int, bool>();
+                Dictionary<int, bool> uWordsVizited = new Dictionary<int, bool>();
+                Dictionary<int, bool> kWordsVizited = new Dictionary<int, bool>();
+
+                List<int> uStore1 = databse.CUDictbase.CtoU[clueWordID].ToList();
+                List<int> uStore2 = new List<int>();
+
+                List<int> kStore1 = databse.CKDictbase.CtoK[clueWordID].ToList();
+                List<int> kStore2 = new List<int>();
+
+                while (uStore1.Count != 0 || kStore1.Count != 0)
+                {
+                    for (int u = 0, k = 0; u < uStore1.Count || k < kStore1.Count; u++, k++)
+                    {
+                        //Uyghur
+                        if (u < uStore1.Count)
+                        {
+                            if (!uWordsVizited.ContainsKey(uStore1[u]))
+                            {
+                                uWordsVizited.Add(uStore1[u], true);
+                                foreach (int itemC1 in databse.CUDictbase.UtoC[uStore1[u]])
+                                {
+                                    if (!cWordsVizited.ContainsKey(itemC1))
+                                        cWordsVizited.Add(itemC1, true);
+
+                                    foreach (int itemU1 in databse.CUDictbase.CtoU[itemC1])
+                                    {
+                                        if (uWordsVizited.ContainsKey(itemU1))
+                                            continue;
+                                        uStore2.Add(itemU1);
+                                    }
+                                }
+                            }
+
+                        }
+                        //Kazak
+                        if (k < kStore1.Count)
+                        {
+                            if (!kWordsVizited.ContainsKey(kStore1[k]))
+                            {
+                                kWordsVizited.Add(kStore1[k], true);
+                                foreach (int itemC1 in databse.CKDictbase.KtoC[kStore1[k]])
+                                {
+                                    if (!cWordsVizited.ContainsKey(itemC1))
+                                        cWordsVizited.Add(itemC1, true);
+
+                                    foreach (int itemK1 in databse.CKDictbase.CtoK[itemC1])
+                                    {
+                                        if (kWordsVizited.ContainsKey(itemK1))
+                                            continue;
+                                        kStore2.Add(itemK1);
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                    uStore1 = uStore2;
+                    kStore1 = kStore2;
+                    uStore2 = new List<int>();
+                    kStore2 = new List<int>();
+                }
+
+                return cWordsVizited.Keys.ToList();
+            }
+
+            public IList<int> GetLinkedCWords2(string clueWord)
+            {
+                int clueWordID= Array.IndexOf<string>(databse.CWords, clueWord);
+                return GetLinkedCWords2(clueWordID);
+           }
+        }
+
+        public CandidateStore GetHeuristicCandidatesOfU(Word word)
+        {
+            
+            BidirectionalGraph<object, IEdge<object>> graph = new BidirectionalGraph<object, IEdge<object>>();
+            Dictionary<int, Word> kStore = new Dictionary<int, Word>();
+            int[] cWords = DBHelper.MyDictBase.CUDictbase.UtoC[word.ID];
+            for (int i = 0; i < cWords.Length; i++)
+            {
+                Word cNode = DBHelper.MyDictBase.GetCWordByID(cWords[i]);
+                graph.AddVertex(cNode);
+                int[] kWords = DBHelper.MyDictBase.CKDictbase.CtoK[cWords[i]];
+                foreach (int item in kWords)
+                { 
+                    Word kWord;
+                    if (kStore.ContainsKey(item))
+                        kWord = kStore[item];
+                    else
+                    {
+                        kWord = DBHelper.MyDictBase.GetKWordByID(item);
+                        kStore.Add(item, kWord);
+                        graph.AddVertex(kWord);
+                    }
+                    graph.AddEdge(new Edge<object>(cNode, kWord));
+                }
+            }
+
+            Dictionary<Word, float[]> weightVectors = new Dictionary<Word, float[]>();
+            string ulyTemp = DBHelper.Syn.getUKYFromUy(word.Value);
+            foreach (Word item in graph.Vertices.Cast<Word>().Where(t => t.Language == HDictInduction.Console.Language.Kazak))
+            {
+                //H1 Pr ( )
+                //H2 Pivot( )
+                //H3 Sim( )
+
+                float h1 = 0f;
+                float h2 = 0f;
+                float h3 = 0f;
+
+                //Calculate H1 
+                float cLinkProb = (float)1 / (float)cWords.Length;
+                foreach (IEdge<object> edge in graph.InEdges(item))
+                {
+                    float outDegree = (float)graph.OutDegree(edge.Source);
+                    h1 +=  cLinkProb/ outDegree;      
+                }
+
+                //Calculate H2
+                h2 = (float)graph.InDegree(item) / (float)cWords.Length;
+
+                //Calculate H3
+                h3 = word.Value == item.Value ? 1f : DBHelper.iLD(ulyTemp, DBHelper.Syn.getLtFromKz(item.Value));
+
+                float[] vector = new float[3];
+                vector[0] = h1; vector[1] = h2; vector[2] = h3; 
+                weightVectors.Add(item, vector);
+            }
+
+            return new CandidateStore(word, graph, weightVectors, ParameterProvider.RUNTIME_PARAMS, Console.Language.Kazak);
+        }
+
+        public CandidateStore GetHeuristicCandidatesOfK(Word word)
+        {
+            //if (word.ID == 21512)
+            //{
+ 
+            //}
+            BidirectionalGraph<object, IEdge<object>> graph = new BidirectionalGraph<object, IEdge<object>>();
+            Dictionary<int, Word> uStore = new Dictionary<int, Word>();
+            int[] cWords = DBHelper.MyDictBase.CKDictbase.KtoC[word.ID];
+            for (int i = 0; i < cWords.Length; i++)
+            {
+                Word cNode = DBHelper.MyDictBase.GetCWordByID(cWords[i]);
+                graph.AddVertex(cNode);
+                int[] uWords = DBHelper.MyDictBase.CUDictbase.CtoU[cWords[i]];
+                foreach (int item in uWords)
+                {
+                    //Word uWord;
+                    //if (uStore.ContainsKey(item))
+                    //    uWord = uStore[item];
+                    //else
+                    //{
+                    Word uWord = DBHelper.MyDictBase.GetUWordByID(item);
+                        //uStore.Add(item, uWord);
+                        graph.AddVertex(uWord);
+                    //}
+                    graph.AddEdge(new Edge<object>(cNode, uWord));
+                }
+            }
+
+            Dictionary<Word, float[]> weightVectors = new Dictionary<Word, float[]>();
+            string ulyTemp = DBHelper.Syn.getLtFromKz(word.Value);
+            foreach (Word item in graph.Vertices)
+            {
+                if (item.Language != HDictInduction.Console.Language.Uyghur)
+                    continue;
+                //H1 Pr ( )
+                //H2 Pivot( )
+                //H3 Sim( )
+
+                float h1 = 0f;
+                float h2 = 0f;
+                float h3 = 0f;
+
+                //Calculate H1 
+                float cLinkProb = (float)1 / (float)cWords.Length;
+                foreach (IEdge<object> edge in graph.InEdges(item))
+                {
+                    float outDegree = (float)graph.OutDegree(edge.Source);
+                    h1 += cLinkProb / outDegree;
+                }
+
+                //Calculate H2
+                //int indgree = graph.InDegree(item);
+                //if (indgree > cWords.Length)
+                //{
+                //    string str = string.Empty;
+                //}
+                h2 = (float)graph.InDegree(item) / (float)cWords.Length;
+
+                //Calculate H3
+                h3 = word.Value == item.Value ? 1f : DBHelper.iLD(ulyTemp, DBHelper.Syn.getUKYFromUy(item.Value));
+
+                float[] vector = new float[3];
+                vector[0] = h1; vector[1] = h2; vector[2] = h3;
+
+                weightVectors.Add(item, vector);
+            }
+
+            return new CandidateStore(word, graph, weightVectors, ParameterProvider.RUNTIME_PARAMS, Console.Language.Uyghur);
+        }
+
+        public KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float,float[]>>> GetFullUtoKBestCandidatesGraph()
+        {
+            Dictionary<string, KeyValuePair<float, float[]>> cost = new Dictionary<string, KeyValuePair<float, float[]>>();
+            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>();
+
+            for (int iId = 0; iId < DBHelper.MyDictBase.UWords.Length; iId++)
+            {
+                Word uWord = DBHelper.MyDictBase.GetUWordByID(iId);
+                CandidateStore candidateStore = GetHeuristicCandidatesOfU(uWord);
+                List<Word> maxcandidates = CandidateStore.GetMaxWeithedCandidates(candidateStore);
+
+                graph.AddVertex(uWord);
+
+                foreach (var item in maxcandidates)
+                {
+                    if (!graph.ContainsVertex(item))
+                        graph.AddVertex(item);
+
+                    Edge<Word> edge = new Edge<Word>(uWord, item);
+                    graph.AddEdge(edge);
+                    cost.Add(EdgeIdentifier(edge), new KeyValuePair<float, float[]>(CandidateStore.GetFValue(item, candidateStore), candidateStore.WeightVectors[item]));
+                }
+            }
+
+            return new KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>>(graph, cost);
+        }
+
+        public KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>> GetFullKtoUBestCandidatesGraph()
+        {
+            Dictionary<string, KeyValuePair<float, float[]>> cost = new Dictionary<string, KeyValuePair<float, float[]>>();
+            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>();
+
+            for (int iId = 0; iId < DBHelper.MyDictBase.KWords.Length; iId++)
+            {
+                Word kWord = DBHelper.MyDictBase.GetKWordByID(iId);
+                CandidateStore candidateStore = GetHeuristicCandidatesOfK(kWord);
+                List<Word> maxcandidates = CandidateStore.GetMaxWeithedCandidates(candidateStore);
+
+                graph.AddVertex(kWord);
+                foreach (var item in maxcandidates)
+                {
+                    if (!graph.ContainsVertex(item))
+                        graph.AddVertex(item);
+
+                    Edge<Word> edge = new Edge<Word>(kWord, item);
+                    graph.AddEdge(edge);
+                    cost.Add(EdgeIdentifier(edge), new KeyValuePair<float, float[]>(CandidateStore.GetFValue(item, candidateStore), candidateStore.WeightVectors[item]));
+                }
+            }
+
+            return new KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>>(graph, cost);
+        }
+
+        public KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>> GetFullBidirectionalBestCandidatesGraph()
+        {
+            Dictionary<string, KeyValuePair<float, float[]>> cost = new Dictionary<string, KeyValuePair<float, float[]>>();
+
+            var task1 = Task.Factory.StartNew<KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>>>
+            (GetFullUtoKBestCandidatesGraph);
+
+            var task2 = Task.Factory.StartNew<KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>>>
+            (GetFullKtoUBestCandidatesGraph);
+
+            Task.WaitAll(task1, task2);
+
+
+            KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>> graphUtoK = task1.Result;
+            KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>> graphKtoU = task2.Result;
+
+            //KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>> graphUtoK = GetFullUtoKBestCandidatesGraph();
+            //KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>> graphKtoU = GetFullKtoUBestCandidatesGraph();
+
+            BidirectionalGraph<Word, Edge<Word>> graphFull = new BidirectionalGraph<Word, Edge<Word>>();
+            graphFull.AddVertexRange(graphUtoK.Key.Vertices);
+            graphFull.AddVertexRange(graphKtoU.Key.Vertices);
+
+            graphFull.AddEdgeRange(graphUtoK.Key.Edges);
+            graphFull.AddEdgeRange(graphKtoU.Key.Edges);
+
+            foreach (var item in graphUtoK.Value)
+            {
+                cost.Add(item.Key, item.Value);
+            }
+            foreach (var item in graphKtoU.Value)
+            {
+                cost.Add(item.Key, item.Value);
+            }
+
+            return new KeyValuePair<BidirectionalGraph<Word, Edge<Word>>, Dictionary<string, KeyValuePair<float, float[]>>>(graphFull, cost);
+        }
+
+        public BidirectionalGraph<object, IEdge<object>> GetHeuristicPairsSample(int count, string shouldBeIncluded, bool continues)
+        {
+            BidirectionalGraph<object, IEdge<object>> graph = new BidirectionalGraph<object, IEdge<object>>();
+
+            int randomNumber = count < 1 ?
+                100 : count > DBHelper.MyDictBase.UWords.Length ? DBHelper.MyDictBase.UWords.Length : count;
+
+            Random random = new Random();
+            int startIndex = -1;
+            if (!string.IsNullOrEmpty(shouldBeIncluded))
+            {
+                int index = Array.IndexOf<string>(DBHelper.MyDictBase.UWords, shouldBeIncluded);
+                index = index < 0 ? index : (index == 0 ? index : (index < 10 ? 0 : (index - 10)));
+                startIndex = index;
+            }
+            if(startIndex<0)
+                startIndex = random.Next(0, DBHelper.MyDictBase.UWords.Length - count + 1);
+
+            Dictionary<int, bool> vizitedIDs = new Dictionary<int, bool>();
+            for (int i = 0; i < count; i++)
+            {
+                int iId = -1;
+                if (continues)
+                {
+                    iId = startIndex++;
+                }
+                else
+                {
+                    {
+                        iId = random.Next(0, DBHelper.MyDictBase.UWords.Length);
+                    } while (vizitedIDs.ContainsKey(iId)) ;
+                    vizitedIDs.Add(iId, true);
+                }
+                Word uWord = DBHelper.MyDictBase.GetUWordByID(iId);
+                CandidateStore candidateStore = GetHeuristicCandidatesOfU(uWord);
+                List<Word> maxcandidates = CandidateStore.GetMaxWeithedCandidates(candidateStore);
+
+                graph.AddVertex(uWord);
+
+                foreach (var item in maxcandidates)
+                {
+                    if (!graph.ContainsVertex(item))
+                        graph.AddVertex(item);
+
+                    //foreach (IEdge<object> itemEdge in candidateStore.RelationalGraph.InEdges(item))
+                    //{
+                    //    if (!graph.ContainsVertex(itemEdge.Source))
+                    //        graph.AddVertex(itemEdge.Source);
+
+                    //    Edge<object> edge1 = new Edge<object>(uWord, itemEdge.Source);
+                    //    Edge<object> edge2 = new Edge<object>(itemEdge.Source, itemEdge.Target);
+                    //    graph.AddEdge(edge1);
+                    //    if (!graph.ContainsEdge(edge2))
+                    //        graph.AddEdge(edge2);
+                    //}
+                    graph.AddEdge(new Edge<object>(uWord, item));
+                }
+            }
+
+            return graph;
+        }
+
+        public string EdgeIdentifier(Edge<Word> edge)
+        {
+            return string.Format("{0}-{1}-{2}-{3}", edge.Source.ID, (int)edge.Source.Language, edge.Target.ID, (int)edge.Target.Language);
+        }
+
+        public string AutoResultfolder()
+        {
+            return System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AutoResult");
+        }
+
+        public float Round(float f)
+        {
+            return (float)(Math.Round((double)f, 2));
+        }
+
+        public List<BidirectionalGraph<Word, Edge<Word>>> GetDatabaseConnectedComponents()
+        {
+            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word,Edge<Word>>();
+
+                //C vertexs
+                foreach (var item in DBHelper._DictBase.CUDictbase.CtoU)
+                {
+                    graph.AddVertex(DBHelper._DictBase.GetCWordByID(item.Key));
+                }
+
+                //U vertexs
+                foreach (var item in DBHelper._DictBase.CUDictbase.UtoC)
+                {
+                    graph.AddVertex(DBHelper._DictBase.GetUWordByID(item.Key));
+                }
+
+                //K vertexs
+                foreach (var item in DBHelper._DictBase.CKDictbase.KtoC)
+                {
+                    graph.AddVertex(DBHelper._DictBase.GetKWordByID(item.Key));
+                }
+
+                //add C to U edges
+                foreach (var item in DBHelper._DictBase.CUDictbase.CtoU)
+                {
+                    foreach (var item2 in item.Value)
+                    {
+                        graph.AddEdge(new Edge<Word>(DBHelper._DictBase.GetCWordByID(item.Key), DBHelper._DictBase.GetUWordByID(item2)));
+                    }
+                }
+
+                //add C to K edges
+                foreach (var item in DBHelper._DictBase.CKDictbase.CtoK)
+                {
+                    foreach (var item2 in item.Value)
+                    {
+                        graph.AddEdge(new Edge<Word>(DBHelper._DictBase.GetCWordByID(item.Key), DBHelper._DictBase.GetKWordByID(item2)));
+                    }
+                }
+
+
+                if (WordRelaionGraph == null)
+                {
+
+                    WordRelaionGraph = new BidirectionalGraph<Word, Edge<Word>>();
+                    foreach (var item in graph.Vertices)
+                    {
+                        WordRelaionGraph.AddVertex(item);
+                    }
+                    foreach (var item in graph.Edges)
+                    {
+                        WordRelaionGraph.AddEdge(item);
+                    }
+                }
+
+            IncrementalConnectedComponentsAlgorithm<Word, Edge<Word>>
+            a = new IncrementalConnectedComponentsAlgorithm<Word, Edge<Word>>(graph as IMutableVertexAndEdgeSet<Word, Edge<Word>>);
+            a.Compute();
+
+            KeyValuePair<int, IDictionary<Word, int>> components = a.GetComponents();
+            List<BidirectionalGraph<Word, Edge<Word>>> connectedComponents = new List<BidirectionalGraph<Word, Edge<Word>>>(components.Key);
+            var grouped = components.Value.GroupBy(t => t.Value);
+
+            foreach (var group in grouped)
+            {
+                BidirectionalGraph<Word, Edge<Word>> g = new BidirectionalGraph<Word, Edge<Word>>(true, group.Count());
+
+                foreach (var item in group)
+                {
+                    g.AddVertex(item.Key);
+                }
+
+                foreach (var item in g.Vertices)
+                {
+                    g.AddEdgeRange(graph.OutEdges(item));
+                }
+
+                connectedComponents.Add(g);
+            }
+
+            return connectedComponents;
+
+        }
+
+        public List<BidirectionalGraph<Word, Edge<Word>>> GetDatabaseConnectedComponents(BidirectionalGraph<Word, Edge<Word>> graph)
+        {
+            IncrementalConnectedComponentsAlgorithm<Word, Edge<Word>>
+            a = new IncrementalConnectedComponentsAlgorithm<Word, Edge<Word>>(graph as IMutableVertexAndEdgeSet<Word, Edge<Word>>);
+            a.Compute();
+
+            KeyValuePair<int, IDictionary<Word, int>> components = a.GetComponents();
+            List<BidirectionalGraph<Word, Edge<Word>>> connectedComponents = new List<BidirectionalGraph<Word, Edge<Word>>>(components.Key);
+            var grouped = components.Value.GroupBy(t => t.Value);
+
+            foreach (var group in grouped)
+            {
+                BidirectionalGraph<Word, Edge<Word>> g = new BidirectionalGraph<Word, Edge<Word>>(true, group.Count());
+
+                foreach (var item in group)
+                {
+                    g.AddVertex(item.Key);
+                }
+
+                foreach (var item in g.Vertices)
+                {
+                    g.AddEdgeRange(graph.OutEdges(item));
+                }
+
+                connectedComponents.Add(g);
+            }
+
+            return connectedComponents;
+
+        }
+
+        public static BidirectionalGraph<Word, Edge<Word>> CloneGraph(BidirectionalGraph<Word, Edge<Word>> graph)
+        {
+            BidirectionalGraph<Word, Edge<Word>> result = new BidirectionalGraph<Word, Edge<Word>>(true);
+            foreach (var item in graph.Vertices)
+            {
+                result.AddVertex(item);
+            }
+            foreach (var item in graph.Edges)
+            {
+                result.AddEdge(item);
+            }
+            return result;
+        }
+    }
+}

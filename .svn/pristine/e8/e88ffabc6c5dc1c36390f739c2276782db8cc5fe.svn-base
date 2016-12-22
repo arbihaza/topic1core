@@ -1,0 +1,246 @@
+﻿<Window x:Class="HDictInduction.Console.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:gs="clr-namespace:GraphSharp.Controls;assembly=GraphSharp.Controls"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:zoom="clr-namespace:WPFExtensions.Controls;assembly=WPFExtensions"
+        Title="Dictionary Induction "
+        Width="722"
+        Height="593"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/LayoutParameterTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <ObjectDataProvider x:Key="algorithmConstraintEnum"
+                                MethodName="GetValues"
+                                ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="gs:AlgorithmConstraints" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Name="DocumentRoot">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="200" />
+        </Grid.RowDefinitions>
+        <DockPanel Name="dockPanel1"
+                   Grid.Row="0"
+                   Margin="0,20,0,0"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   Background="#FFF5ECEC">
+            <zoom:ZoomControl Name="zoomGraph" DockPanel.Dock="Bottom">
+                <gs:GraphLayout x:Name="graphLayout"
+                                Graph="{Binding}"
+                                HighlightAlgorithmType="Simple"
+                                LayoutAlgorithmType="{Binding Path=LayoutAlgorithmType}"
+                                OverlapRemovalAlgorithmType="FSA"
+                                OverlapRemovalConstraint="Must" />
+            </zoom:ZoomControl>
+        </DockPanel>
+        <DockPanel Name="dockPanel2"
+                   Grid.Row="1"
+                   Margin="0,5,0,0"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch">
+            <TabControl Name="tabControl1"
+                        DockPanel.Dock="Bottom"
+                        FlowDirection="LeftToRight"
+                        TabStripPlacement="Bottom">
+                <TabItem Name="tabItem1" Header="Main">
+                    <Grid>
+                        <ListBox Name="listBoxAllCWords"
+                                 Width="155"
+                                 Height="121"
+                                 Margin="7,36,0,6"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Stretch"
+                                 SelectionChanged="listBoxAllCWords_SelectionChanged" />
+                        <ListBox Name="listBox_LinkedCWords"
+                                 Width="178"
+                                 Margin="178,36,0,35"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Stretch" />
+                        <TextBox Name="textBox_SearchCWord"
+                                 Width="98"
+                                 Height="23"
+                                 Margin="7,7,0,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top" />
+                        <Button Name="button_SearchCWord"
+                                Width="52"
+                                Height="23"
+                                Margin="110,7,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_SearchCWord_Click"
+                                Content="Search" />
+                        <Label Name="label1"
+                               Height="28"
+                               Margin="174,9,284,0"
+                               VerticalAlignment="Top"
+                               Content="Linked C Word:" />
+                        <Button Name="button_CreateGraph"
+                                Width="80"
+                                Height="23"
+                                Margin="178,0,0,6"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="button_CreateGraph_Click"
+                                Content="Create Graph" />
+                        <Label Name="label_LinkedCWordCount"
+                               Height="28"
+                               Margin="278,9,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="-" />
+                        <Button Name="button_FullGraph"
+                                Width="80"
+                                Height="23"
+                                Margin="278,0,0,6"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Click="button_FullGraph_Click"
+                                Content="Entire Graph" />
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Graph" />
+                <TabItem Header="View">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <GroupBox Width="118"
+                                  Height="49"
+                                  Margin="6,2,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Top"
+                                  Header="Layout Algorithm">
+                            <ComboBox Name="cmbxLayoutAlgorithm"
+                                      Grid.Column="1"
+                                      VerticalAlignment="Bottom"
+                                      ItemsSource="{Binding Path=LayoutAlgorithmFactory.AlgorithmTypes,
+                                                            ElementName=graphLayout}"
+                                      SelectedValue="{Binding Path=LayoutAlgorithmType,
+                                                              ElementName=graphLayout,
+                                                              Mode=TwoWay}" />
+                        </GroupBox>
+                        <GroupBox Width="415"
+                                  Margin="6,58,0,6"
+                                  HorizontalAlignment="Left"
+                                  Content="{Binding Path=LayoutParameters,
+                                                    ElementName=graphLayout}"
+                                  Header="Layout Algorithm Parameters" />
+                        <GroupBox Width="168"
+                                  Height="45"
+                                  Margin="427,6,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Top"
+                                  Header="Overlap Removal Algorithm">
+                            <ComboBox Name="cmbxOverLapAlgorithm"
+                                      Grid.Column="1"
+                                      VerticalAlignment="Top"
+                                      ItemsSource="{Binding Path=OverlapRemovalAlgorithmFactory.AlgorithmTypes,
+                                                            ElementName=graphLayout}"
+                                      SelectedValue="{Binding Path=OverlapRemovalAlgorithmType,
+                                                              ElementName=graphLayout}" />
+                        </GroupBox>
+                        <GroupBox Margin="427,58,6,6"
+                                  Content="{Binding Path=OverlapRemovalParameters,
+                                                    ElementName=graphLayout}"
+                                  Header="Overlap Algorithm Parameters" />
+                        <Button Name="button_Relayout"
+                                Width="75"
+                                Height="23"
+                                Margin="130,23,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_Relayout_Click"
+                                Content="Relayout" />
+                    </Grid>
+                </TabItem>
+                <TabItem Name="tabItem2" Header="Output">
+                    <Grid>
+                        <TextBox Name="textBox_Output"
+                                 Margin="6,6,111,6"
+                                 Text=""
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                        <Button Name="button_Output_Copy"
+                                Width="99"
+                                Height="23"
+                                Margin="0,6,6,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Click="button_Output_Copy_Click"
+                                Content="Copy" />
+                        <Button Name="button_Output_Clear"
+                                Width="99"
+                                Height="23"
+                                Margin="0,35,6,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Click="button_Output_Clear_Click"
+                                Content="Clear" />
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+        <GridSplitter Name="gridSplitter1"
+                      Grid.Row="1"
+                      Width="50"
+                      Height="5"
+                      Margin="262,0,254,0"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Top"
+                      Background="#64000000"
+                      ResizeBehavior="BasedOnAlignment"
+                      ResizeDirection="Rows" />
+        <Menu Name="MenuItem_Relayout"
+              Height="25"
+              Margin="0"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Top">
+            <MenuItem Header="File">
+                <MenuItem Name="MenuItem_SaveToImage"
+                          Click="MenuItem_SaveToImage_Click"
+                          Header="Save to image" />
+                <Separator />
+                <MenuItem Name="MenuItem_Exit"
+                          Command="ApplicationCommands.Close"
+                          Header="Exit" />
+            </MenuItem>
+            <MenuItem Click="MenuItem_Click_2" Header="Relayout" />
+            <MenuItem Name="MenuItem_Temp"
+                      Click="MenuItem_Temp_Click"
+                      Header="Functions">
+                <MenuItem Click="MenuItem_Click_1" Header="Filter graph with less nodes" />
+            </MenuItem>
+            <MenuItem Click="MenuItem_Click" Header="Heuristics" />
+            <MenuItem Click="MenuItem_Click_3" Header="Human Evaluation" />
+        </Menu>
+        <Label Name="label_Graph_Domain"
+               Width="368"
+               Height="23"
+               Margin="11,20,0,0"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Top"
+               HorizontalContentAlignment="Left"
+               VerticalContentAlignment="Center"
+               Content="label1"
+               FlowDirection="LeftToRight"
+               Padding="0" />
+        <Label Name="label_CurrentWord"
+               Width="221"
+               Height="22"
+               Margin="0,21,5,0"
+               HorizontalAlignment="Right"
+               VerticalAlignment="Top"
+               HorizontalContentAlignment="Right"
+               VerticalContentAlignment="Center"
+               Content="-"
+               Padding="0" />
+    </Grid>
+</Window>

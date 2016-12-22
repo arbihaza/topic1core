@@ -1,0 +1,561 @@
+﻿<Window x:Class="HDictInduction.Console.WindowHeuristics"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:gs="clr-namespace:GraphSharp.Controls;assembly=GraphSharp.Controls"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:zoom="clr-namespace:WPFExtensions.Controls;assembly=WPFExtensions"
+        x:Name="window"
+        Title="Heuristic Induction Interface"
+        Width="913"
+        Height="567"
+        WindowState="Normal">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/LayoutParameterTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <ObjectDataProvider x:Key="algorithmConstraintEnum"
+                                MethodName="GetValues"
+                                ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="gs:AlgorithmConstraints" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Name="grid0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="314" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <GridSplitter Name="gridSplitter1"
+                      Grid.Column="1"
+                      Width="5"
+                      Height="50"
+                      MinHeight="50"
+                      Margin="0,160,0,157"
+                      HorizontalAlignment="Left"
+                      Background="{StaticResource {x:Static SystemColors.ControlDarkBrushKey}}" />
+        <DockPanel Name="dockPanel1"
+                   Margin="0"
+                   Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}">
+            <TabControl Name="tabControl1"
+                        DockPanel.Dock="Left"
+                        TabStripPlacement="Bottom">
+                <TabItem Name="tabItem1" Header="Main">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="284" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ListBox Name="listBox_KCandidates"
+                                 Width="126"
+                                 Margin="130,64,0,169"
+                                 HorizontalAlignment="Left"
+                                 FontFamily="ALKATIP Tor"
+                                 FontSize="13"
+                                 SelectionChanged="listBox_KCandidates_SelectionChanged" />
+                        <Label Name="label1"
+                               Width="91"
+                               Height="28"
+                               Margin="130,37,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="1-1 Candidates:"
+                               FontWeight="Normal" />
+                        <Button Name="button_FindCandidates"
+                                Width="118"
+                                Height="29"
+                                Margin="6,0,0,111"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                HorizontalContentAlignment="Center"
+                                Click="button_FindCandidates_Click"
+                                Content="Visualize" />
+                        <Label Name="label_AllUWords"
+                               Width="53"
+                               Height="28"
+                               Margin="83,37,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="-" />
+                        <Label Name="label_CandidateKWords"
+                               Width="29"
+                               Height="28"
+                               Margin="227,37,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="-" />
+                        <GroupBox Name="groupBox1"
+                                  Width="250"
+                                  Height="88"
+                                  Margin="6,0,28,6"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Bottom"
+                                  Header="Heuristics Parameters">
+                            <Grid>
+                                <Label Name="label4"
+                                       Height="28"
+                                       Margin="6,18,0,0"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top"
+                                       Content="𝝎𝟏"
+                                       FontSize="16" />
+                                <TextBox Name="textBox_w1"
+                                         Width="37"
+                                         Height="23"
+                                         Margin="38,26,0,0"
+                                         HorizontalAlignment="Left"
+                                         VerticalAlignment="Top"
+                                         IsEnabled="False"
+                                         Text="1.0" />
+                                <Label Name="label3"
+                                       Height="28"
+                                       Margin="80,18,0,0"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top"
+                                       Content="𝝎2"
+                                       FontSize="16" />
+                                <TextBox Name="textBox_w2"
+                                         Width="41"
+                                         Height="23"
+                                         Margin="111,26,0,0"
+                                         HorizontalAlignment="Left"
+                                         VerticalAlignment="Top"
+                                         IsEnabled="False"
+                                         Text="1.0" />
+                                <Label Name="label5"
+                                       Height="28"
+                                       Margin="157,20,0,0"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top"
+                                       Content="𝝎3"
+                                       FontSize="16" />
+                                <TextBox Name="textBox_w3"
+                                         Width="42"
+                                         Height="23"
+                                         Margin="189,26,0,0"
+                                         HorizontalAlignment="Left"
+                                         VerticalAlignment="Top"
+                                         IsEnabled="False"
+                                         Text="1.0" />
+                            </Grid>
+                        </GroupBox>
+                        <TextBox Name="textBox_CurrentUWord"
+                                 Width="118"
+                                 Height="23"
+                                 Margin="6,0,0,143"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Bottom"
+                                 FontFamily="ALKATIP Tor"
+                                 TextChanged="textBox_CurrentUWord_TextChanged" />
+                        <TextBox Name="textBox_CurrentKWord"
+                                 Width="126"
+                                 Height="23"
+                                 Margin="130,0,0,143"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Bottom"
+                                 FontFamily="ALKATIP Tor"
+                                 TextChanged="textBox_CurrentKWord_TextChanged" />
+                        <Label Name="label6"
+                               Width="83"
+                               Height="28"
+                               Margin="4,37,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Content="All X Words:"
+                               FontWeight="Normal" />
+                        <DockPanel Name="dockPanel4"
+                                   Width="250"
+                                   Height="28"
+                                   Margin="6,6,0,0"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Top"
+                                   Background="{StaticResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}">
+                            <Label Name="label2"
+                                   HorizontalAlignment="Left"
+                                   Content="Current X Word:"
+                                   FontSize="14"
+                                   FontWeight="Bold" />
+                            <Label Name="label_CurrentUword"
+                                   Content="---"
+                                   DockPanel.Dock="Right"
+                                   FontSize="14"
+                                   FontWeight="Bold" />
+                        </DockPanel>
+                        <ListBox Name="listBox_AllUWords"
+                                 Width="118"
+                                 Margin="6,64,0,169"
+                                 HorizontalAlignment="Left"
+                                 FontFamily="ALKATIP Tor"
+                                 FontSize="13"
+                                 SelectionChanged="listBox_AllUWords_SelectionChanged" />
+                        <Button Name="button_FindUCandidates"
+                                Width="126"
+                                Height="29"
+                                Margin="130,0,0,111"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                HorizontalContentAlignment="Center"
+                                Click="button_FindUCandidates_Click"
+                                Content="Reverse directin" />
+                    </Grid>
+                </TabItem>
+                <TabItem Name="tabItem4" Header="Heursictic Operations">
+                    <Grid Width="412">
+                        <Button Name="button_FindAllPairs"
+                                Width="265"
+                                Height="23"
+                                Margin="14,15,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_FindAllPairs_Click"
+                                Content="Find best candidates for all U" />
+                        <Button Name="button_SamplePairs"
+                                Width="265"
+                                Height="23"
+                                Margin="14,44,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_SamplePairs_Click"
+                                Content="Find  best candidates of  random 100 U" />
+                        <Button Name="button_FindAllOnetoOnePairs"
+                                Width="265"
+                                Height="22"
+                                Margin="14,112,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_FindAllOnetoOnePairs_Click"
+                                Content="Find All U with single best candidate" />
+                        <Button Name="button_SelectRandomPairs"
+                                Width="265"
+                                Height="22"
+                                Margin="14,140,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_SelectRandomPairs_Click"
+                                Content="Find random 100 U with single best candidate" />
+                        <Button Name="button_temp"
+                                Width="265"
+                                Height="22"
+                                Margin="14,205,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_temp_Click"
+                                Content="Generage Bidirectional Best Candidates Graph"
+                                FontWeight="Bold" />
+                        <TextBox Name="textBox_ShouldBeIncluded"
+                                 Height="23"
+                                 Margin="69,73,90,0"
+                                 VerticalAlignment="Top" />
+                        <Button Name="buttonRandomConnectedComponents"
+                                Width="265"
+                                Height="23"
+                                Margin="14,237,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="buttonRandomConnectedComponents_Click"
+                                Content="Randomly Select a Connected Component" />
+                        <Button Name="buttonRandomConnectedComponents_bi"
+                                Width="265"
+                                Height="23"
+                                Margin="14,271,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="buttonRandomConnectedComponents_bi_Click"
+                                Content="Randomly Select a Connected Component-Bi" />
+                        <Button Name="btm_SaveBidrectionalPairs"
+                                Width="265"
+                                Height="23"
+                                Margin="14,332,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_SaveBidrectionalPairs_Click"
+                                Content="Save Bidrectional Pairs" />
+                        <Button Name="button_GenerageFinalResult"
+                                Width="265"
+                                Height="23"
+                                Margin="17,381,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Background="#FFF2ABAB"
+                                Click="button_GenerageFinalResult_Click"
+                                Content="Generage Final Result"
+                                FontWeight="Bold" />
+                        <Button Name="button1"
+                                Width="265"
+                                Height="23"
+                                Margin="17,0,0,14"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Background="#FF7CD475"
+                                Click="button1_Click_2"
+                                Content="Human evaluation"
+                                FontWeight="Bold" />
+                    </Grid>
+                </TabItem>
+                <TabItem Name="tabItem7" Header="Accesories">
+                    <Grid>
+                        <Button Name="button_AverageSimilarity"
+                                Width="194"
+                                Height="23"
+                                Margin="6,15,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Click="button_AverageSimilarity_Click"
+                                Content="Calculate Similarty ThreshHold" />
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+        <Grid Name="grid1"
+              Grid.Column="1"
+              Margin="5,0,0,0"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="150" />
+            </Grid.RowDefinitions>
+            <DockPanel Name="dockPanel2"
+                       Grid.Row="0"
+                       Margin="0,20,0,0"
+                       HorizontalAlignment="Stretch"
+                       VerticalAlignment="Stretch"
+                       Background="#FFF5ECEC">
+                <zoom:ZoomControl Name="zoomGraph"
+                                  DockPanel.Dock="Bottom"
+                                  Mode="Original"
+                                  MouseDoubleClick="zoomGraph_MouseDoubleClick">
+                    <gs:GraphLayout x:Name="graphLayout"
+                                    Graph="{Binding}"
+                                    HighlightAlgorithmType="Simple"
+                                    LayoutAlgorithmType="{Binding Path=LayoutAlgorithmType}"
+                                    OverlapRemovalAlgorithmType="FSA"
+                                    OverlapRemovalConstraint="Must" />
+                </zoom:ZoomControl>
+            </DockPanel>
+            <GridSplitter Name="gridSplitter2"
+                          Width="50"
+                          Height="5"
+                          MinWidth="50"
+                          Margin="121,0,104,0"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Bottom"
+                          Background="{StaticResource {x:Static SystemColors.ControlDarkBrushKey}}"
+                          ResizeBehavior="BasedOnAlignment"
+                          ResizeDirection="Rows" />
+            <DockPanel Name="dockPanel3"
+                       Grid.Row="1"
+                       Margin="5,0,0,0"
+                       Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}">
+                <TabControl Name="tabControl2" TabStripPlacement="Bottom">
+                    <TabItem Name="tabItem2" Header="Matrix">
+                        <Grid>
+                            <DataGrid Name="dgvSummary"
+                                      Margin="2,2,117,2"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserSortColumns="True"
+                                      ColumnWidth="*"
+                                      ItemsSource="{Binding}"
+                                      SelectionChanged="dgvSummary_SelectionChanged"
+                                      SelectionMode="Single"
+                                      SelectionUnit="FullRow">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="ID"
+                                                            IsReadOnly="True"
+                                                            SortMemberPath="Word">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path=ID}" Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="Mark"
+                                                            IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path=Mark}" Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="Word"
+                                                            IsReadOnly="True"
+                                                            SortMemberPath="Word">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock FontFamily="ALKATIP Tor"
+                                                           FontSize="13"
+                                                           Text="{Binding Path=Word}"
+                                                           Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="Probablity"
+                                                            IsReadOnly="True"
+                                                            SortMemberPath="H1">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path=H1}" Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="Pivot Number"
+                                                            IsReadOnly="True"
+                                                            SortMemberPath="H2">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path=H2}" Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="Similarity"
+                                                            IsReadOnly="True"
+                                                            SortMemberPath="H3">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path=H3}" Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CanUserSort="True"
+                                                            Header="Over all"
+                                                            IsReadOnly="True"
+                                                            SortMemberPath="F">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock FontWeight="Bold"
+                                                           Text="{Binding Path=F}"
+                                                           Visibility="Visible" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <GroupBox Name="groupBox2"
+                                      Width="111"
+                                      Margin="0,0,0,2"
+                                      HorizontalAlignment="Right"
+                                      Header="Sorting">
+                                <Grid>
+                                    <Button Name="button_Sort_H1"
+                                            Height="23"
+                                            Margin="6,5,54,0"
+                                            VerticalAlignment="Top"
+                                            HorizontalContentAlignment="Left"
+                                            Click="button_Sort_Click"
+                                            Content="↓ Prob"
+                                            Tag="H1" />
+                                    <Button Name="button_Sort_H2"
+                                            Width="42"
+                                            Height="23"
+                                            Margin="0,5,6,0"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            HorizontalContentAlignment="Left"
+                                            Click="button_Sort_Click"
+                                            Content="↓ Pivot"
+                                            Tag="H2" />
+                                    <Button Name="button_Sort_H3"
+                                            Height="23"
+                                            Margin="6,34,6,0"
+                                            VerticalAlignment="Top"
+                                            HorizontalContentAlignment="Center"
+                                            Click="button_Sort_Click"
+                                            Content="↓ Similarity"
+                                            Tag="H3" />
+                                    <Button Name="button_Sort_Overall"
+                                            Height="23"
+                                            Margin="6,64,6,0"
+                                            VerticalAlignment="Top"
+                                            HorizontalContentAlignment="Center"
+                                            Click="button_Sort_Click"
+                                            Content="↓ Over All"
+                                            Tag="F" />
+                                </Grid>
+                            </GroupBox>
+                        </Grid>
+                    </TabItem>
+                    <TabItem Name="tabItem3" Header="Graph Layout">
+
+                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <GroupBox Width="118"
+                                      Height="49"
+                                      Margin="6,2,0,0"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Top"
+                                      Header="Layout Algorithm">
+                                <ComboBox Name="cmbxLayoutAlgorithm"
+                                          Grid.Column="1"
+                                          VerticalAlignment="Bottom"
+                                          ItemsSource="{Binding Path=LayoutAlgorithmFactory.AlgorithmTypes,
+                                                                ElementName=graphLayout}"
+                                          SelectedValue="{Binding Path=LayoutAlgorithmType,
+                                                                  ElementName=graphLayout,
+                                                                  Mode=TwoWay}" />
+                            </GroupBox>
+                            <GroupBox Width="415"
+                                      Margin="6,58,0,6"
+                                      HorizontalAlignment="Left"
+                                      Content="{Binding Path=LayoutParameters,
+                                                        ElementName=graphLayout}"
+                                      Header="Layout Algorithm Parameters" />
+                            <GroupBox Width="168"
+                                      Height="45"
+                                      Margin="427,6,0,0"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Top"
+                                      Header="Overlap Removal Algorithm">
+                                <ComboBox Name="cmbxOverLapAlgorithm"
+                                          Grid.Column="1"
+                                          VerticalAlignment="Top"
+                                          ItemsSource="{Binding Path=OverlapRemovalAlgorithmFactory.AlgorithmTypes,
+                                                                ElementName=graphLayout}"
+                                          SelectedValue="{Binding Path=OverlapRemovalAlgorithmType,
+                                                                  ElementName=graphLayout}" />
+                            </GroupBox>
+                            <GroupBox Margin="427,58,6,6"
+                                      Content="{Binding Path=OverlapRemovalParameters,
+                                                        ElementName=graphLayout}"
+                                      Header="Overlap Algorithm Parameters" />
+                            <Button Name="button_Relayout"
+                                    Width="75"
+                                    Height="23"
+                                    Margin="0,23,313,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Click="button_Relayout_Click"
+                                    Content="Relayout" />
+                        </Grid>
+
+                    </TabItem>
+                    <TabItem Name="tabItem5" Header="View">
+                        <Grid>
+                            <CheckBox Name="checkBox1"
+                                      Height="26"
+                                      Margin="6,14,0,0"
+                                      HorizontalAlignment="Left"
+                                      VerticalAlignment="Top"
+                                      Content="Display in Latin script"
+                                      IsChecked="{Binding ElementName=window,
+                                                          Path=Latin}" />
+                        </Grid>
+                    </TabItem>
+                    <TabItem Name="tabItem6" Header="Log">
+                        <Grid>
+                            <TextBox Name="textBox_Output" Margin="0,0,0,6" />
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</Window>

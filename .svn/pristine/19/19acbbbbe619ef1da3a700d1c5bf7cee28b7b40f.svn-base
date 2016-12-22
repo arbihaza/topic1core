@@ -1,0 +1,153 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using HDictInduction.Console.Heuristics;
+
+namespace HDictInduction.Console.Resources
+{
+    /// <summary>
+    /// Interaction logic for NodeConstrolWithMatrix.xaml
+    /// </summary>
+    public partial class NodeConstrolWithMatrix : UserControl, INodeControl
+    {
+        public static System.Windows.Media.Brush MaxBrush = new SolidColorBrush(Colors.Red);
+        public static System.Windows.Media.Brush NormalBrush = new SolidColorBrush(Colors.Black);
+
+        public NodeConstrolWithMatrix(string nodeMark, Word word, float[] weightVector, float heurisitcWeight)
+        {
+            this._word = word;
+            this._nodeMark = nodeMark;
+            this._WeightVector = weightVector;
+            this._HeurisitcWeight = heurisitcWeight;
+            InitializeComponent();
+        }
+
+        private float[] _WeightVector;
+
+        public float[] WeightVector
+        {
+            get { return _WeightVector; }
+            set { _WeightVector = value; }
+        }
+
+        public string H1
+        {
+            get { return _WeightVector[0].ToString("0.00000"); }
+        }
+
+        public string H2
+        {
+            get { return _WeightVector[1].ToString("0.00000"); }
+        }
+
+        public string H3
+        {
+            get { return _WeightVector[2].ToString("0.00000"); }
+        }
+
+        private float _HeurisitcWeight;
+        public string HeurisitcWeight 
+        {
+            get
+            {
+                return _HeurisitcWeight.ToString("0.00000"); 
+            }
+        }
+
+        //public event EventHandler MouseLeftDown;
+
+        public event EventHandler MouseEnter;
+
+        public event EventHandler MouseLeave;
+
+        private string _nodeMark = "x";
+
+        public string NodeMark
+        {
+            get { return this._nodeMark; }
+            set
+            {
+                this._nodeMark = value;
+            }
+        }
+
+        private Word _word;
+
+        public Word Word
+        {
+            get { return _word; }
+            set
+            {
+                this.Word = value;
+            }
+        }
+
+        public Brush Brush
+        {
+            get
+            {
+                if (Word.Language == HDictInduction.Console.Language.Chinese)
+                {
+                    return GlobalStore.Brush_C;
+                }
+                else if (Word.Language == HDictInduction.Console.Language.Uyghur)
+                {
+                    return GlobalStore.Brush_U;
+                }
+                else if (Word.Language == HDictInduction.Console.Language.Kazak)
+                {
+                    return GlobalStore.Brush_K;
+                }
+                else
+                {
+                    return GlobalStore.Brush_None;
+                }
+            }
+        }
+
+        public override string ToString()
+        {
+            return _nodeMark;
+        }
+     
+        private void label1_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (this.MouseEnter != null)
+                this.MouseEnter(this, e);
+        }
+
+        private void label1_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (this.MouseLeave != null)
+                this.MouseLeave(this, e);
+        }
+
+        public void BackHighLight(bool on)
+        {
+
+            if (on)
+            {
+                this.label_H1.Foreground = this.label_H2.Foreground = this.label_H3.Foreground = this.label_Oveall.Foreground
+                    = MaxBrush;
+      
+               
+            }
+            else
+            {
+                this.label_H1.Foreground = this.label_H2.Foreground = this.label_H3.Foreground = this.label_Oveall.Foreground
+                    = NormalBrush;
+            }
+        }
+
+    }
+}

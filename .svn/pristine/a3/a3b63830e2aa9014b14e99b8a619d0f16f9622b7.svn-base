@@ -1,0 +1,451 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using QuickGraph;
+
+namespace HDictInduction.Console.SAT
+{
+    class SATConverter2 
+    {
+        public static Dictionary<OOPair, string> PairVarMap = null;
+        public static int LastVarCount = 0;
+
+        public List<OOPair> Generate(BidirectionalGraph<Word, Edge<Word>> g)
+        {
+            //Direction: Uyghur--> Chinese <--Kazahk
+            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
+            #region Prepare graph
+            foreach (var item in g.Vertices)
+            {
+                graph.AddVertex(item);
+            }
+
+            foreach (var item in g.Edges) 
+            {
+                if (item.Source.Language == Console.Language.Chinese && item.Target.Language == Console.Language.Uyghur)
+                    graph.AddEdge(new Edge<Word>(item.Target, item.Source));
+                else
+                    graph.AddEdge(new Edge<Word>(item.Source, item.Target));
+            }
+            #endregion
+
+            Dictionary<OOPair, bool> ooPairsDict = new Dictionary<OOPair, bool>();
+            List<OOPair> ooPairs = new List<OOPair>();
+
+            var uWords = graph.Vertices.Where(t => t.Language == Language.Uyghur);
+            var kWords = graph.Vertices.Where(t => t.Language == Language.Kazak);
+
+            int uWordCount = uWords.Count();
+            int kWordCount = kWords.Count();
+            int u =0,k=0;
+
+            foreach (var uWord in uWords)
+            {
+                foreach (var kWord in kWords)
+                {
+                    OOPair ooPair = new OOPair(uWord, kWord);
+                    if (ooPairsDict.ContainsKey(ooPair))
+                        continue;
+                    ooPair = getPair(uWord, kWord, graph);
+                    ooPairsDict.Add(ooPair,true);
+                 }
+                u++;
+            }
+        
+            return ooPairsDict.Keys.ToList();
+        }
+
+        private OOPair getPair(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph) 
+        {
+            List<SPath> paths = new List<SPath>();
+
+            foreach (var item in graph.OutEdges(uWord))
+            {
+                SLink linkCU = new SLink(item.Target, uWord);
+                linkCU.Exists = true;
+
+                SLink linkCK = new SLink(item.Target, kWord);
+                linkCK.Exists = graph.ContainsEdge(item.Target, kWord);
+
+                SPath path = new SPath(linkCU, linkCK);
+                if (!paths.Contains(path))
+                    paths.Add(path);
+            }
+
+            foreach (var item in graph.InEdges(kWord))
+            {
+                SLink linkCK = new SLink(item.Source, kWord);
+                linkCK.Exists = true;
+
+                SLink linkCU = new SLink(item.Source, uWord);
+                linkCU.Exists = graph.ContainsEdge(uWord, item.Source);
+
+                SPath path = new SPath(linkCU, linkCK);
+                if (!paths.Contains(path))
+                    paths.Add(path);
+            }
+
+            //caluclate probability
+            int uCount = 0;
+            int kCount = 0;
+
+            foreach (var item in graph.Vertices)
+            {
+                if (item.Language == Language.Uyghur)
+                    uCount++;
+                if (item.Language == Language.Kazak)
+                    kCount++;
+            }
+            float uCouverage = uCount / (float)Math.Max(uCount, kCount);
+            float kCouverage = kCount / (float)Math.Max(uCount, kCount);
+
+            //U to K calculation
+            float pUK = 0;
+            foreach (var item in paths)
+            {
+                if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
+                    continue;
+                float pUC = 1 / (float)graph.InEdges(item.LinkCU.WordPivot).Count();
+                float pCK = 1 / (float)graph.OutEdges(item.LinkCU.WordPivot).Count();
+                pUK += pUC * pCK;
+            }
+            pUK = pUK * uCouverage;
+
+
+            //K to U calculation
+            float pKU = 0;
+            foreach (var item in paths)
+            {
+                if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
+                    continue;
+                float pKC = 1 / (float)graph.OutEdges(item.LinkCK.WordPivot).Count();
+                float pCU = 1 / (float)graph.InEdges(item.LinkCK.WordPivot).Count();
+                pKU += pKC * pCU;
+            }
+            pKU = pKU * kCouverage;
+
+            float probUK = pUK * pKU;
+
+            string kWordLatin = DBHelper.Syn.getLtFromKz(kWord.Value);
+            string uWordLatin = DBHelper.Syn.getUKYFromUy(uWord.Value);
+            float similarity = DBHelper.iLD(uWordLatin, kWordLatin);
+
+
+            OOPair pair = new OOPair(uWord, kWord);
+            pair.Paths = paths;
+            pair.Prob = probUK;
+ 
+            return pair;
+        }
+
+        public string GetCNF(List<OOPair> pairs, BidirectionalGraph<Word, Edge<Word>> g)
+        {
+            string maxCost = "100000000000000000000000000000000000000000";//Int32.MaxValue;
+            int varCount = 0;
+            int clauseCount = 0;
+            StringBuilder sb = new StringBuilder();
+            StringBuilder buffer = new StringBuilder();
+            Dictionary<SLink, string> linkVarMap = new Dictionary<SLink, string>();
+             PairVarMap = new Dictionary<OOPair, string>();
+            //set Pr of  links
+            foreach (var item in pairs)
+            {
+                foreach (var item2 in item.Paths)
+                {
+                    item2.LinkCU.Pr = item2.LinkCU.Exists ? 1f : item.Prob;
+                    item2.LinkCK.Pr = item2.LinkCK.Exists ? 1f : item.Prob;
+
+                    foreach (var item3 in pairs)
+                    {
+                        if (item3.NeedsLink(item2.LinkCU))
+                            if (item2.LinkCU.Pr < item3.Prob)
+                                item2.LinkCU.Pr = item3.Prob;
+
+                        if (item3.NeedsLink(item2.LinkCK))
+                            if (item2.LinkCK.Pr < item3.Prob)
+                                item2.LinkCK.Pr = item3.Prob;
+                    }
+                }
+            }
+
+            //Sort links
+            Dictionary<SLink,bool> links = new Dictionary<SLink,bool>();
+            foreach (var item in pairs)
+            {
+                foreach (var item2 in item.Paths)
+                {
+                    if (!links.ContainsKey(item2.LinkCU))
+                        links.Add(item2.LinkCU, item2.LinkCU.Exists);
+
+
+                    if (!links.ContainsKey(item2.LinkCK))
+                        links.Add(item2.LinkCK, item2.LinkCK.Exists);
+                }
+            }
+
+            List<SLink> links2 = links.Keys.OrderBy(t => t.WordX.Language).OrderByDescending(t => t.Exists).ToList();
+            for (int i = 0; i < links2.Count; i++)
+            {
+                linkVarMap.Add(links2[i], (i + 1).ToString());
+            }
+
+            varCount = linkVarMap.Count;
+            foreach (var item in linkVarMap)
+            {
+                sb.AppendLine(string.Format("c L{0}\tLink {1}\t[{2}]->[{3}]", 
+                    item.Value, 
+                    item.Key.WordX.Language == Language.Uyghur?"CU":"CK",
+                    item.Key.WordPivot.Value, 
+                    item.Key.WordX.Value));
+               
+                sb.AppendLine(string.Format("{0} {1} 0",
+                    item.Key.Exists ? maxCost :((1-item.Key.Pr) * 1000000).ToString(),
+                    item.Key.Exists ? item.Value : "-" + item.Value));
+                clauseCount++;
+            }
+
+
+            //Start of New Pair
+            sb.AppendLine("c ==Start of New Pair==");
+            foreach (var item in pairs)
+            {
+                sb.AppendLine(string.Format("c \tPair\t[{0}]-[{1}]", item.WordU.Value, item.WordK.Value));
+
+                var pathsPowerSet = PowerSet4<SPath>.powerset(item.Paths.ToArray()).ToList();
+                int count = pathsPowerSet.Count();
+                for (int i = 0, p=0; i < pathsPowerSet.Count; i++)
+                {
+                    IList<SPath> pathGroup = pathsPowerSet[i];
+                    if (pathGroup.Count == 0)
+                        continue;
+                    string oVarName = (varCount+p+1).ToString();
+                    p++;
+                    sb.AppendLine(string.Format("c O{0}\tPropogated variable", oVarName));
+                   
+                    foreach (var item2 in item.Paths)
+                    {
+                        if(pathGroup.Contains(item2))
+                        {
+                            sb.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[item2.LinkCU], oVarName));
+                            sb.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[item2.LinkCK], oVarName));
+                            clauseCount += 2;
+                        }
+                        else
+                        {
+                            sb.AppendLine(string.Format("{0} -{1} -{2} 0", maxCost, linkVarMap[item2.LinkCU], oVarName));
+                            sb.AppendLine(string.Format("{0} -{1} -{2} 0", maxCost, linkVarMap[item2.LinkCK], oVarName));
+                            clauseCount += 2;
+                        }
+                    }
+                }
+                //add a->b or c or...
+                string str = string.Empty;
+                int[] propVars = new int[pathsPowerSet.Count-1];
+                for (int i = 0; i < propVars.Length; i++)
+                {
+                    string oVarName = (varCount+i+1).ToString();
+                    if (i == propVars.Length - 1)
+                        str += oVarName;
+                    else
+                        str += oVarName + " OR ";
+                    propVars[i] = (varCount + i + 1);
+                }
+                varCount = varCount + propVars.Length+1;
+                if(propVars.Length>1)
+                    sb.AppendLine(string.Format("c \tP{0}\t{1} <=> {2}", (varCount), (varCount), str));
+                else
+                    sb.AppendLine(string.Format("c \tP{0}\t{1} == {2}", (varCount), (varCount), varCount-1));
+                
+                if(propVars.Count() == 0)
+                    throw new Exception();
+                else if (propVars.Count() == 1)
+                {
+                    sb.AppendLine(string.Format("{0} -{1} {2} 0", maxCost, varCount, varCount-1));
+                    sb.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, varCount, varCount - 1));
+                    clauseCount += 2;
+                }
+                else
+                {
+                    string[] propConstraints = or((varCount), propVars);
+                    foreach (var pronConstraint in propConstraints)
+                    {
+                        sb.AppendLine(string.Format("{0} {1} 0", maxCost, pronConstraint));
+                        clauseCount++;
+                    }
+                }
+                PairVarMap.Add(item, varCount.ToString());
+            }
+            //Exclusive constraint 1
+            sb.AppendLine(string.Format("c {0}", "==Start of Exclusive constraint 1 =="));
+            foreach (var item in pairs)
+            {
+                List<string> exclusiveParis = new List<string>();
+                foreach (var item2 in pairs)
+                {
+                    if (item == item2)
+                        continue;
+                    if (item.WordK == item2.WordK || item.WordU == item2.WordU)
+                        exclusiveParis.Add(PairVarMap[item2]);
+                }
+
+                if (exclusiveParis.Count > 0)
+                {
+                    buffer.Clear();
+                    buffer.Append(string.Format("c Exclusive {0}-> ",PairVarMap[item]));
+                    for (int i = 0; i < exclusiveParis.Count; i++)
+                    {
+                        if (i == exclusiveParis.Count - 1)
+                            buffer.Append(string.Format("-{0}",exclusiveParis[i]));
+                        else
+                            buffer.Append(string.Format("-{0} AND ", exclusiveParis[i]));
+                    }
+                    sb.AppendLine(buffer.ToString());
+
+                    for (int i = 0; i < exclusiveParis.Count; i++)
+                    {
+                        sb.AppendLine(string.Format("{0} -{1} -{2} 0", maxCost, PairVarMap[item], exclusiveParis[i]));
+                        clauseCount++;
+                    }
+                }
+            }
+
+            //Exclusive constraint 2
+            sb.AppendLine(string.Format("c {0}", "==Start of Exclusive constraint 2 =="));
+            List<Word> uWords = g.Vertices.Where(t => t.Language == Language.Uyghur).ToList();
+            List<Word> kWords = g.Vertices.Where(t => t.Language == Language.Kazak).ToList();
+
+            if (kWords.Count >= uWords.Count)
+            {
+                foreach (var uWord in uWords)
+                {
+                    buffer.Clear();
+                    buffer.Append(maxCost); 
+                    buffer.Append(" ");
+                    foreach (var item in pairs)
+                    {
+                        if (item.WordU == uWord)
+                        {
+                            buffer.Append(PairVarMap[item]);
+                            buffer.Append(" ");
+                        }
+                    }
+                    buffer.Append("0");
+                    sb.AppendLine(buffer.ToString());
+                    clauseCount++;
+                }
+            }
+            else
+            {
+                foreach (var kWord in kWords)
+                {
+                    buffer.Clear();
+                    buffer.Append(maxCost);
+                    buffer.Append(" ");
+                    foreach (var item in pairs)
+                    {
+                        if (item.WordK == kWord)
+                        {
+                            buffer.Append(PairVarMap[item]);
+                            buffer.Append(" ");
+                        }
+                    }
+                    buffer.Append("0");
+                    sb.AppendLine(buffer.ToString());
+                    clauseCount++;
+                }
+            }
+            LastVarCount = varCount;
+            sb.Insert(0, string.Format("p wcnf {0} {1} {2}{3}",varCount,clauseCount,maxCost,Environment.NewLine));
+            return sb.ToString();
+        }
+
+        private string[] or(int x, int[] list)
+        {
+            if (list.Length < 2)
+                throw new Exception();
+            string[] result = new string[list.Length + 1];
+            string str = string.Empty;
+            foreach (var item in list)
+            {
+                str += string.Format("{0} ",item);
+            }
+            str += string.Format("-{0}", x);
+
+            result[0] = str;
+
+            for (int i = 0; i < list.Length; i++)
+            {
+                result[i + 1] = string.Format("-{0} {1}",list[i],x);
+            }
+            return result;
+        }
+
+        private string[] xor(int x, int[] list)
+        {
+            List<string> result = new List<string>();
+            if (list.Length < 2)
+                throw new Exception();
+
+            int[] listPlus = new int[list.Length];
+            int[] listMinus = new int[list.Length];
+
+            for (int i = 0; i < list.Length; i++)
+			{
+                listPlus[i]=list[i];
+                listMinus[i] = -list[i];
+            }
+            //+
+            for (int i = 0; i < listPlus.Length; i++)
+            {
+                string str1 = string.Format("{0} ", listPlus[i]);
+                string str2 = string.Format("-{0} ", listPlus[i]);
+                for (int j = 0; j < listPlus.Length; j++)
+                {
+                    if (i == j)
+                        continue;
+                    if (j == listPlus.Length - 1)
+                    {
+                        str1 += string.Format("-{0}", listPlus[j]);
+                        str2 += string.Format("{0}", listPlus[j]);
+                    }
+                    else
+                    {
+                        str1 += string.Format("-{0} ", listPlus[j]);
+                        str2 += string.Format("{0} ", listPlus[j]);
+                    }
+                }
+
+                str1 = string.Format("{0} {1}",str1,x);
+                str2 = string.Format("{0} {1}", str2, x);
+
+                result.Add(str1);
+                result.Add(str2);
+            }
+            //-
+            string str3 = string.Empty;
+            string str4 = string.Empty;
+            for (int j = 0; j < listPlus.Length; j++)
+            {
+                if (j == listPlus.Length - 1)
+                {
+                    str3 += string.Format("{0}", listPlus[j]);
+                    str4 += string.Format("-{0}", listPlus[j]);
+                }
+                else
+                {
+                    str3 += string.Format("{0} ", listPlus[j]);
+                    str3 += string.Format("-{0} ", listPlus[j]);
+                }
+            }
+            str3 = string.Format("{0} -{1}", str3, x);
+            str4 = string.Format("{0} -{1}", str4, x);
+            result.Add(str3);
+            result.Add(str3);
+
+
+
+            throw new Exception();
+        }
+    }
+}

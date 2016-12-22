@@ -1,0 +1,61 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+
+namespace HDictInduction.Console.SAT
+{
+
+    public class SPath:IEquatable<SPath>, IEqualityComparer<SPath>
+    {
+        public SLink LinkCU;
+        public SLink LinkCK;
+
+        public SPath(SLink l1, SLink l2)
+        {
+            LinkCU = l1;
+            LinkCK = l2;
+        }
+
+        public bool Equals(SPath other)
+        {
+            return LinkCU.Equals(other.LinkCU) && LinkCK.Equals(other.LinkCK);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return LinkCU.Equals((obj as SPath).LinkCU) && LinkCK.Equals((obj as SPath).LinkCK);
+        }
+
+
+        public override string  ToString()
+        {
+            throw new Exception();
+            return string.Format("U[{0}] C[{1}] K[{2}]", LinkCU.WordNonPivot.Value, LinkCU.WordPivot.Value, LinkCK.WordNonPivot.Value);
+        }
+
+
+        public bool Equals(SPath x, SPath y)
+        {
+            throw new Exception();
+            return x.LinkCU.Equals(y.LinkCU) && x.LinkCK.Equals(y.LinkCK);
+        }
+
+        public override int GetHashCode()
+        {
+            return LinkCK.GetHashCode() ^ LinkCU.GetHashCode();
+            //int hash1 = LinkCK.GetHashCode();
+            //int hash2 = LinkCU.GetHashCode();
+            //int finalHash = hash1 ^ hash2;
+            //return finalHash != 0 ? finalHash : hash1;
+        }
+
+        public int GetHashCode(SPath obj)
+        {
+            int hash1 = obj.LinkCK.GetHashCode();
+            int hash2 = obj.LinkCU.GetHashCode();
+            int finalHash = hash1 ^ hash2;
+            return finalHash != 0 ? finalHash : hash1;
+        }
+    }
+}

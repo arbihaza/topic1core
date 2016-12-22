@@ -1,0 +1,128 @@
+﻿
+Task t1 = Task.Factory.StartNew(() => {
+
+                var edgesWithLowWeightPart1 = edgesWithLowWeight.Take(edgesWithLowWeight.Count/4);
+
+                foreach (var item in edgesWithLowWeightPart1)
+                {
+                    int source = d[item.Source];
+                    int target = d[item.Target];
+
+                    if (resultInt.Degree(source) == 2 || resultInt.Degree(target) == 2)
+                        continue;
+
+                    source = d2[item.Source];
+                    target = d2[item.Target];
+
+                    int pathCount = s.NumberOfPath(resultInt2, source, target);
+                    if (pathCount <3)
+                    {
+                        System.Diagnostics.Trace.WriteLine("1 Path Found.");
+                        System.IO.File.AppendAllText("low1.txt", string.Format("{0}->{1}:{2}{4}", source, target, pathCount, Environment.NewLine));
+                    }
+                }
+            
+            });
+
+
+            Task t2 = Task.Factory.StartNew(() =>
+            {
+
+                var edgesWithLowWeightPart2 = edgesWithLowWeight.Skip(edgesWithLowWeight.Count / 4).Take(edgesWithLowWeight.Count / 4);
+
+                foreach (var item in edgesWithLowWeightPart2)
+                {
+                    int source = d[item.Source];
+                    int target = d[item.Target];
+
+                    if (resultInt.Degree(source) == 2 || resultInt.Degree(target) == 2)
+                        continue;
+
+                    source = d2[item.Source];
+                    target = d2[item.Target];
+
+                    int pathCount = s.NumberOfPath(resultInt2, source, target);
+                    if (pathCount < 3)
+                    {
+                        System.Diagnostics.Trace.WriteLine("1 Path Found.");
+                        System.IO.File.AppendAllText("low2.txt", string.Format("{0}->{1}:{2}{4}", source, target, pathCount, Environment.NewLine));
+                    }
+                }
+
+            });
+
+
+            Task t3 = Task.Factory.StartNew(() =>
+            {
+
+                var edgesWithLowWeightPart3 = edgesWithLowWeight.Skip(edgesWithLowWeight.Count / 4).Skip(edgesWithLowWeight.Count / 4).Take(edgesWithLowWeight.Count / 4);
+
+                foreach (var item in edgesWithLowWeightPart3)
+                {
+                    int source = d[item.Source];
+                    int target = d[item.Target];
+
+                    if (resultInt.Degree(source) == 2 || resultInt.Degree(target) == 2)
+                        continue;
+
+                    source = d2[item.Source];
+                    target = d2[item.Target];
+
+                    int pathCount = s.NumberOfPath(resultInt2, source, target);
+                    if (pathCount < 3)
+                    {
+                        System.Diagnostics.Trace.WriteLine("1 Path Found.");
+                        System.IO.File.AppendAllText("low3.txt", string.Format("{0}->{1}:{2}{4}", source, target,pathCount, Environment.NewLine));
+                    }
+                }
+
+            });
+
+
+            Task t4 = Task.Factory.StartNew(() =>
+            {
+
+                var edgesWithLowWeightPart4 = edgesWithLowWeight.Skip(edgesWithLowWeight.Count / 4).Skip(edgesWithLowWeight.Count / 4).Skip(edgesWithLowWeight.Count / 4).Take(edgesWithLowWeight.Count / 4);
+
+                foreach (var item in edgesWithLowWeightPart4)
+                {
+                    int source = d[item.Source];
+                    int target = d[item.Target];
+
+                    if (resultInt.Degree(source) == 2 || resultInt.Degree(target) == 2)
+                        continue;
+
+                    source = d2[item.Source];
+                    target = d2[item.Target];
+
+                    int pathCount = s.NumberOfPath(resultInt2, source, target);
+                    if (pathCount < 3)
+                    {
+                        System.Diagnostics.Trace.WriteLine("1 Path Found.");
+                        System.IO.File.AppendAllText("low4.txt", string.Format("{0}->{1}:{2}{4}", source, target, pathCount, Environment.NewLine));
+                    }
+                }
+
+            });
+
+            Task.WaitAll(t1, t2, t3, t4);
+
+
+
+
+			//===================Dispaly Chinese Connectiviy=======================
+			//BidirectionalGraph<object, IEdge<object>> tt = new BidirectionalGraph<object, IEdge<object>>();
+            //foreach (var item in result.Vertices)
+            //{
+            //    tt.AddVertex(item);
+            //}
+
+            //foreach (var item in result.Edges)
+            //{
+            //    tt.AddEdge(new Edge<object>(item.Source, item.Target));
+            //    tt.AddEdge(new Edge<object>(item.Target, item.Source));
+            //}
+
+            //this.graphLayout.Graph = tt;
+            //this.graphLayout.Relayout();
+            //return;

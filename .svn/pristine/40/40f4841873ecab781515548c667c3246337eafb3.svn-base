@@ -1,0 +1,182 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using QuickGraph;
+using HDictInduction.Console.Resources;
+using System.Data;
+using System.Windows.Controls;
+
+namespace HDictInduction.Console.Heuristics
+{
+    class CandidateStore
+    {
+        private static readonly float SimilartyThreshHold = 0.5953354f;
+
+        private float[] _Parameters;
+
+        public float[] Parameters
+        {
+            get { return _Parameters; }
+            set { _Parameters = value; }
+        }
+
+        private Language _Language;
+
+        public Language Language
+        {
+            get { return _Language; }
+            set { _Language = value; }
+        }
+
+
+        private Word _SourceWord;
+
+        public Word SourceWord
+        {
+            get { return _SourceWord; }
+            set { _SourceWord = value; }
+        }
+
+        private IBidirectionalGraph<object, IEdge<object>> _RelationalGraph;
+
+        public IBidirectionalGraph<object, IEdge<object>> RelationalGraph
+        {
+            get { return _RelationalGraph; }
+            set { _RelationalGraph = value; }
+        }
+
+        private Dictionary<Word, float[]> _WeightVectors;
+
+        public Dictionary<Word, float[]> WeightVectors
+        {
+            get { return _WeightVectors; }
+            set { _WeightVectors = value; }
+        }
+
+        public BidirectionalGraph<object, IEdge<object>> VisualGraph
+        {
+            get {return CandidateStore.GetVisualGraph(this,true); }
+        }
+
+        public CandidateStore(Word sourceWord, IBidirectionalGraph<object, IEdge<object>> relationalGraph, Dictionary<Word, float[]> weightVectors, float[] parameters, Language lang)
+        {
+            this._SourceWord = sourceWord;
+            this._RelationalGraph = relationalGraph;
+            this._WeightVectors = weightVectors;
+            this._Parameters = parameters;
+            this._Language = lang;
+        }
+
+        public static BidirectionalGraph<object, IEdge<object>> GetVisualGraph(CandidateStore candidateStore, bool highlightMax)
+        {
+            List<Word> maxWeighted = null;
+            if (highlightMax)
+                maxWeighted = GetMaxWeithedCandidates(candidateStore);
+
+            BidirectionalGraph<object, IEdge<object>> graph = new BidirectionalGraph<object, IEdge<object>>();
+            Dictionary<Word, INodeControl> nodeStore = new Dictionary<Word, INodeControl>();
+            int cCount = 0;
+            int Count = 0;
+
+            NodeControl sourceNode = candidateStore.Language==
+                Language.Uyghur ? new NodeControl("k", candidateStore.SourceWord) : new NodeControl("u", candidateStore.SourceWord);
+            
+            graph.AddVertex(sourceNode);
+            foreach (Word item in candidateStore.RelationalGraph.Vertices)
+            {
+                if (item.Language == Language.Chinese)
+                {
+                    cCount++;
+                    NodeControl node = new NodeControl("c" + cCount.ToString(), item);
+                    nodeStore.Add(item, node);
+                    graph.AddVertex(node);
+                    graph.AddEdge(new Edge<object>(sourceNode,node));
+                }
+                else if (item.Language == Language.Kazak || item.Language == Language.Uyghur)
+                {
+                    Count++;
+                    NodeConstrolWithMatrix node =
+                        candidateStore.Language == Language.Kazak ?
+                        new NodeConstrolWithMatrix("k" + Count.ToString(), item, candidateStore.WeightVectors[item], CandidateStore.GetFValue(item, candidateStore)) :
+                         new NodeConstrolWithMatrix("u" + Count.ToString(), item, candidateStore.WeightVectors[item], CandidateStore.GetFValue(item, candidateStore));
+                    if (highlightMax)
+                        if (maxWeighted.Contains(item))
+                            node.BackHighLight(true);
+                    nodeStore.Add(item, node);
+                    graph.AddVertex(node);               
+                }
+                else {
+                    throw new Exception("Language Error!");
+                }
+            }
+
+            foreach (IEdge<object> item in candidateStore.RelationalGraph.Edges)
+            {
+                graph.AddEdge(new Edge<object>(nodeStore[(Word)item.Source], nodeStore[(Word)item.Target]));
+            }
+
+            return graph;
+        }
+
+        public static DataTable GetDataTable(CandidateStore candidateStore)
+        {
+
+            DataTable table = new DataTable();
+            table.Columns.Add(new DataColumn("ID", typeof(int)));
+            table.Columns.Add(new DataColumn("Mark", typeof(string)));
+            table.Columns.Add(new DataColumn("Word", typeof(string)));
+            table.Columns.Add(new DataColumn("H1", typeof(float)));
+            table.Columns.Add(new DataColumn("H2", typeof(float)));
+            table.Columns.Add(new DataColumn("H3", typeof(string)));
+            table.Columns.Add(new DataColumn("F", typeof(float)));
+
+
+            int counter = 1;
+            foreach (KeyValuePair<Word, float[]> kv in candidateStore.WeightVectors)
+            {
+                table.Rows.Add(
+                    counter,
+                    candidateStore.Language == Language.Kazak ? "k" + (counter++).ToString() : "u" + (counter++).ToString(),
+                    GlobalStore.Latin ? DBHelper.Syn.getLtFromKz(kv.Key.Value) : kv.Key.Value,
+                    kv.Value[0],
+                    kv.Value[1],
+                    kv.Value[2].ToString("0.00000"),
+                    GetFValue(kv.Key, candidateStore)
+                    );
+            }
+            return table;
+        }
+
+        public static float GetFValue(Word kWord, CandidateStore candidateStore)
+        {
+            //float simThreshHolde = 0.4f;
+
+            //if (!candidateStore.WeightVectors.ContainsKey(kWord))
+            //    return -1;
+            
+            
+            float[] vector = candidateStore.WeightVectors[kWord];
+            float[] parameters = candidateStore.Parameters;
+
+            if (vector[2] >= SimilartyThreshHold)
+                parameters = ParameterProvider.SIMILARITY_BIAS_PARAMS;
+
+ 
+            float result =
+                parameters[0] * vector[0] +
+                parameters[1] * vector[1] +
+                parameters[2] * vector[2];
+            
+            return result;
+        }
+
+        public static List<Word> GetMaxWeithedCandidates(CandidateStore candidateStore)
+        {
+            var itemsMax = candidateStore.WeightVectors
+                .Where(x => GetFValue(x.Key, candidateStore) == candidateStore.WeightVectors.Max(y => GetFValue(y.Key, candidateStore)))
+                .Select(t=>t.Key);
+            return itemsMax.ToList();
+        }
+    }
+}

@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="HDictInduction.Console.Resources.GraphMatrixLabelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300" Width="70" Height="92">
+    <Grid Background="{x:Null}">
+
+        <Label Content="←Probability" Height="16" HorizontalContentAlignment="Left" Margin="1,27,0,0" Name="label_H1" Padding="0" VerticalAlignment="Top"  />
+        <Label Content="←Pivot Num" HorizontalContentAlignment="Left" Margin="1,41,0,0" Name="label2" Padding="0" VerticalContentAlignment="Center" Height="16" VerticalAlignment="Top" />
+        <Label Content="←Similarity" HorizontalContentAlignment="Left" Name="label3" Padding="0" VerticalContentAlignment="Center" Margin="1,54,0,0" Height="16" VerticalAlignment="Top"  />
+        <Label Content="Heuristics" Height="16" HorizontalContentAlignment="Center" Margin="0,5,0,0" Name="label1" Padding="0" VerticalAlignment="Top" Background="{StaticResource {x:Static SystemColors.InactiveCaptionBrushKey}}" Grid.ColumnSpan="2" FontWeight="Bold" />
+        <Label Content="← Over All" Height="16" HorizontalContentAlignment="Left" Margin="0,75,1,0" Name="label4" Padding="0" VerticalAlignment="Top" VerticalContentAlignment="Center" />
+        <Rectangle Height="1" HorizontalAlignment="Left" Margin="1,72,0,0" Name="rectangle1" Stroke="Black" VerticalAlignment="Top" Width="70" />
+    </Grid>
+</UserControl>

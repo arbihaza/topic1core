@@ -681,12 +681,12 @@ namespace HDictInduction.Console.SAT
             bool solveNext = true;
             int solveCounter = 1;
             int rank = 0;
-                
+
             while (solveNext)
             {
                 bool pairInduced = false;
                 int counter = 0;
-                string objectiveFunctionValue  = "-";
+                string objectiveFunctionValue = "-";
                 //write encode
                 string cnf = encode(pairs, ooPairs, file);
                 //string fullName = "'" + file.FullName + "'";
@@ -696,19 +696,24 @@ namespace HDictInduction.Console.SAT
                 cnfWriter.Close();
 
                 //solve
-                KeyValuePair<List<int>, long> currentResult = solveCNF(file);
+                KeyValuePair<Dictionary<int, bool>, bool> currentResult = solveCNF(file);
                 foreach (var item in currentResult.Key)
                 {
-                    if (ooPairs.ContainsKey(varPairMap[item]))
+                    if (ooPairs.ContainsKey(varPairMap[item.Key]))
                         continue;
-                    ooPairs.Add(varPairMap[item],++rank);
-                    iterOOPairMap.Add(solveCounter, varPairMap[item]);
+                    Debug.WriteLine("varPairMap[item]: " + varPairMap[item.Key] + " decision: " + item.Value);
+
+                    if (item.Value)
+                        ooPairs.Add(varPairMap[item.Key], ++rank);
+                    else
+                        ooPairs.Add(varPairMap[item.Key], -(++rank));
+                    iterOOPairMap.Add(solveCounter, varPairMap[item.Key]);
                     if (counter > 1)
                         throw new Exception("More than one pair induced!");
-                    pairInduced = true;
+                    pairInduced = true;                    
                 }
                 solveNext = pairInduced;
-                iterSolvingTimeMap.Add(solveCounter, currentResult.Value);
+                //iterSolvingTimeMap.Add(solveCounter, currentResult.Value);
 
                 //read object function value
                 string infoFileName = file.FullName+ ".inf";
@@ -723,7 +728,10 @@ namespace HDictInduction.Console.SAT
 
             List<string> ooPairString = new List<string>();
             foreach (var item in ooPairs.Keys)
-                ooPairString.Add(string.Format("{0},{1},{2}",ooPairs[item],item.WordU,item.WordK));
+            {
+                if (ooPairs[item] > 0)
+                    ooPairString.Add(string.Format("{0},{1},{2}", ooPairs[item], item.WordU, item.WordK));
+            }                
             string ooFileName = file.FullName.Replace(".wcnf", ".oo");
             System.IO.File.WriteAllLines(ooFileName, ooPairString.ToArray());
             int pairCount = ooPairString.Count;
@@ -739,7 +747,7 @@ namespace HDictInduction.Console.SAT
 
            
 
-            //write statistic
+            /*/write statistic
             int uWordCount = graph.Vertices.Where(t => t.Language == Console.Language.Uyghur).Count();
             int kWordCount = graph.Vertices.Where(t => t.Language == Console.Language.Kazak).Count();
             int zWordCount = graph.Vertices.Where(t => t.Language == Console.Language.Chinese).Count();
@@ -761,19 +769,21 @@ namespace HDictInduction.Console.SAT
                     iterSolvingTimeMap[i], 
                     iterObjectiveMap[i]));
             }
-
+            
             System.IO.File.WriteAllLines(solvingInfoFileName, infoTale.ToArray());
+            */
             return string.Format("Done in {0}ms", (DateTime.Now.Ticks - time) / TimeSpan.TicksPerMillisecond);
         }
 
-        private KeyValuePair<List<int>, long> solveCNF(FileInfo file)
+        private KeyValuePair<Dictionary<int, bool>, bool> solveCNF(FileInfo file)
         {
             //For omega3, threshold only works on existing pair, currently the new pair in D_N will all have constant cost, 
             //so, no need to filter, either accept them all or not at all
             //Thus, we can use one threshold for both omega2 and omega3 (with option to accept new pair in D_N or not)                                         
             double threshold2 = 1000000000 * omega2Threshold;
             double threshold3 = 1000000000 * omega3Threshold; 
-            List<int> inducedPairs = new List<int>();
+            //List<int> inducedPairs = new List<int>();
+            Dictionary<int, bool> inducedPairs = new Dictionary<int, bool>();
             long time = DateTime.Now.Ticks;
 
             //solve
@@ -789,12 +799,13 @@ namespace HDictInduction.Console.SAT
             process.Start();
             process.WaitForExit();
             long timeToSolve = (DateTime.Now.Ticks - time) / TimeSpan.TicksPerMillisecond;
+            bool decision = false;
 
             System.IO.FileInfo solFile = new System.IO.FileInfo(file.FullName + ".sol");
             System.IO.FileInfo costFile = new System.IO.FileInfo(file.FullName + ".inf");
             string solution = System.IO.File.ReadAllText(solFile.FullName);
             if (string.IsNullOrEmpty(solution.Trim()))
-                return new KeyValuePair<List<int>, long>(new List<int>(), timeToSolve); //unsatisfiable
+                return new KeyValuePair<Dictionary<int, bool>, bool>(new Dictionary<int, bool>(), decision); //unsatisfiable
             else
             {
                 //totalCost = long.Parse(System.IO.File.ReadAllText(costFile.FullName).Substring(15));
@@ -803,9 +814,9 @@ namespace HDictInduction.Console.SAT
                 {
                     totalCost = long.Parse(lines[1]);
                     currentCost = totalCost - totalCostHistory;
-                    Debug.WriteLine(currentCost + " is the currentCost");
+                    /*Debug.WriteLine(currentCost + " is the currentCost");
                     Debug.WriteLine(totalCost + "is the totalCost");
-                    /*if (currentCost == 100000000000)
+                    if (currentCost == 100000000000)
                     {
                         //currentCost = totalCost - totalCostHistory2;
                         totalCostHistory2 = totalCostHistory;                        
@@ -832,7 +843,7 @@ namespace HDictInduction.Console.SAT
                 //Debug.WriteLine(totalCost);
             }
                 
-            Dictionary<int, bool> variables = new Dictionary<int, bool>();
+            //Dictionary<int, bool> variables = new Dictionary<int, bool>();
 
             foreach (var item in solution.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
             {
@@ -852,24 +863,26 @@ namespace HDictInduction.Console.SAT
                 }
                 if (b && varPairMap.ContainsKey(varValue))
                 {
+                    Debug.WriteLine("CurrentCost: " + currentCost);
                     if (!useThreshold && currentCost == 100000000000)
                     {
-                        inducedPairs.Add(varValue);
+                        inducedPairs[varValue] = true;
                         Debug.WriteLine("#ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);                        
                     }                        
-                    else if (currentCost <= currentThreshold)
+                    else// if (currentCost <= currentThreshold)
                     {
-                        inducedPairs.Add(varValue);
+                        inducedPairs[varValue] = false;
                         //Debug.WriteLine("ACCEPTED PAIR: " + currentCost);
+                        Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                     }                        
                     //else
-                    //    Debug.WriteLine("REJECTED PAIR: " + currentCost);
+                    //    Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
                     //if (totalCost > 100000000000)
                     //    Debug.WriteLine(totalCost);
                 }                    
             }
 
-            return new KeyValuePair<List<int>, long>(inducedPairs, timeToSolve);
+            return new KeyValuePair<Dictionary<int, bool>, bool>(inducedPairs, decision);
         }
     }
 }

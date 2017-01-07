@@ -624,7 +624,7 @@ namespace HDictInduction.Console
 
             v.ForEach(t => this.textBox_Output.AppendText(string.Format("{0}\t{1}{2}", t.Key, t.Value, Environment.NewLine)));
             //dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 1 && t.Vertices.Count() > 6).OrderBy(t => t.Vertices.Count()).ToList();
-            dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 1 && t.Vertices.Count() > 6).OrderBy(t => t.Vertices.Count()).ToList();
+            dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 0 && t.Vertices.Count() > 0).OrderBy(t => t.Vertices.Count()).ToList();
             int id = 1;
 
             this.listBox1.ItemsSource = dataBaseConnectedComponents2.Select(t => string.Format("[{0}] P:{1} U:{2} K:{3} E:{4}", id++, t.Vertices.Where(k => k.Language == Console.Language.Chinese).Count(), t.Vertices.Where(k => k.Language == Console.Language.Uyghur).Count(), t.Vertices.Where(k => k.Language == Console.Language.Kazak).Count(), t.EdgeCount));  
@@ -1425,7 +1425,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             //    subGraphsClustered.AddRange(subGraphs2);
             //}
 
-            
+
             //System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo( @"d:\buffer\");
 
             //for (int i = 0; i < subGraphsClustered.Count; i++)
@@ -1445,11 +1445,13 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             //}
 
             //ICTest(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
-
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             solveAll();
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
             simpleSound.Play();
-            MessageBox.Show("Done");
+            watch.Stop();
+            var elapsedMs = watch.Elapsed;
+            MessageBox.Show(string.Format("Done in {0} minutes", elapsedMs.ToString()));
         }
 
         private void solveAll()
@@ -1462,13 +1464,21 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             if (endindex >= dataBaseConnectedComponents2.Count)
                 throw new Exception("Index out of range!");
 
+            List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
+
             System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
             for (int i = startindex; i <= endindex; i++)
             {
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
                 System.IO.FileInfo cnfFile = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, string.Format("graph_{0}.wcnf", i + 1)));
                 new SATConverter3().SolveGraph(g, cnfFile);
+                allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
+            var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
+            System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            simpleSound.Play();
+            Debug.WriteLine("Generate All Naive pairs is done");
 
             //Parallel.For(0, dataBaseConnectedComponents2.Count, 
             //    (i)=> new SATConverter3().SolveGraph(dataBaseConnectedComponents2[i],
@@ -1645,7 +1655,27 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
         private void buttonNaiveCombination_Click(object sender, RoutedEventArgs e)
         {
-            NaiveCombination(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
+            int startindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[0].Trim()) - 1;
+            int endindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[1].Trim()) - 1;
+
+            if (startindex < 0)
+                throw new Exception("Index out of range!");
+            if (endindex >= dataBaseConnectedComponents2.Count)
+                throw new Exception("Index out of range!");
+
+            List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
+
+            System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
+            for (int i = startindex; i <= endindex; i++)
+            {
+                BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
+                allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
+            }
+            var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
+            System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            simpleSound.Play();
+            Debug.WriteLine("Generate All Naive pairs is done");
         }
 
         private void buttonTraditionalTanaka_Click(object sender, RoutedEventArgs e)
@@ -1725,10 +1755,10 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             }
         }
 
-        private void useNewPairs_Click(object sender, RoutedEventArgs e)
+        /*private void useNewPairs_Click(object sender, RoutedEventArgs e)
         {
             SATConverter3.acceptOmega3NewPair = useNewPairs.IsChecked == true ? true : false;
-        }
+        }*/
 
         private void uniqenessConstraint_Click(object sender, RoutedEventArgs e)
         {

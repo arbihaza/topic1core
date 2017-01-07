@@ -166,60 +166,6 @@ namespace HDictInduction.Console.SAT
                                     pair.Prob = (float)probUK;
                                     pair.HasMissingEdge = true;
                                     newPairVarMap[pair] = (float)probUK;
-
-                                    /*/set link weights
-                                    foreach (var item in pair.Paths)
-                                    {
-                                        //CU
-                                        if (item.LinkCU.Exists)
-                                        {
-                                            item.LinkCU.Pr = 1f;
-                                            if (!LinkWeightCache.ContainsKey(item.LinkCU))
-                                                LinkWeightCache.Add(item.LinkCU, item.LinkCU.Pr);
-                                        }
-                                        else
-                                        {
-                                            //pair.HasMissingCUEdge = true;
-                                            float value = 0;
-                                            if (LinkWeightCache.TryGetValue(item.LinkCU, out value))
-                                            {
-                                                if (pair.Prob > value)
-                                                    item.LinkCU.Pr = LinkWeightCache[item.LinkCU] = pair.Prob;
-                                                else
-                                                    item.LinkCU.Pr = value;
-                                            }
-                                            else
-                                            {
-                                                item.LinkCU.Pr = pair.Prob;
-                                                LinkWeightCache.Add(item.LinkCU, pair.Prob);
-                                            }
-                                        }
-
-                                        //CK
-                                        if (item.LinkCK.Exists)//false)//
-                                        {
-                                            item.LinkCK.Pr = 1f;
-                                            if (!LinkWeightCache.ContainsKey(item.LinkCK))
-                                                LinkWeightCache.Add(item.LinkCK, item.LinkCK.Pr);
-                                        }
-                                        else
-                                        {
-                                            float value = 0;
-                                            if (LinkWeightCache.TryGetValue(item.LinkCK, out value))
-                                            {
-                                                if (pair.Prob > value)
-                                                    LinkWeightCache[item.LinkCK] = item.LinkCK.Pr = pair.Prob;
-                                                else
-                                                    item.LinkCK.Pr = value;
-                                            }
-                                            else
-                                            {
-                                                item.LinkCK.Pr = pair.Prob;
-                                                LinkWeightCache.Add(item.LinkCK, pair.Prob);
-                                            }
-                                        }
-                                    }*/
-
                                     ooPairsDict.Add(pair, true);
                                     ooPairs.Add(pair);
                                 }
@@ -231,7 +177,33 @@ namespace HDictInduction.Console.SAT
             float maxWeight = 0;
             return ooPairs;
         }
-        
+
+        public List<KeyValuePair<Word, Word>> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> g)
+        {
+            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
+            #region Prepare graph
+            foreach (var item in g.Vertices)
+                graph.AddVertex(item);
+            #endregion
+            List<KeyValuePair<Word, Word>> pairs = new List<KeyValuePair<Word, Word>>();
+
+            var uWords = graph.Vertices.Where(t => t.Language == Language.Uyghur);
+            var kWords = graph.Vertices.Where(t => t.Language == Language.Kazak);
+            var cWords = graph.Vertices.Where(t => t.Language == Language.Chinese);
+
+            foreach (var uWord in uWords)
+                foreach (var kWord in kWords)
+                    pairs.Add(new KeyValuePair<Word, Word>(uWord, kWord));
+
+            /*var output = pairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
+            System.IO.File.WriteAllLines(@"buffer\NaiveCombination.txt", output);
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            simpleSound.Play();
+            Debug.WriteLine("Generate All Naive pairs is done");
+            */
+            return pairs;
+        }
+
         private WordPair createNewEdges(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph, int uCount, int kCount)
         {
             Cache1.Clear();
@@ -573,9 +545,10 @@ namespace HDictInduction.Console.SAT
             //so, no need to filter, either accept them all or not at all
             //Thus, we can use one threshold for both omega2 and omega3 (with option to accept new pair in D_N or not)                                         
             double threshold2 = 1000000000 * omega2Threshold;
-            
+            //double threshold3 = 100000000000 + (1000000000 * omega3Threshold);
+
             Dictionary<int, bool> inducedPairs = new Dictionary<int, bool>();
-            long time = DateTime.Now.Ticks;
+            long time = DateTime.Now.Ticks; 
 
             //solve
             string solverPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SATSolverConsole.jar");
@@ -604,7 +577,18 @@ namespace HDictInduction.Console.SAT
                 {
                     totalCost = long.Parse(lines[1]);
                     currentCost = totalCost - totalCostHistory;
-                    totalCostHistory = totalCost;                    
+                    totalCostHistory = totalCost;
+                    /*if (omega3Threshold > 0)
+                        if (currentCost <= threshold3)
+                            Debug.WriteLine("ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                        else
+                            Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                    else if (omega2Threshold > 0)
+                        if (currentCost <= threshold2)
+                            Debug.WriteLine("ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                        else
+                            Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                    */
                 }                                    
             }
 
@@ -613,20 +597,58 @@ namespace HDictInduction.Console.SAT
                 int varValue = int.Parse(item);
                 bool b = varValue > 0 ? true : false;
                 double currentThreshold = threshold2;
+                /*bool useThreshold = false;
+                if (omega3Threshold > 0 && omega2Threshold == 0)
+                {
+                    currentThreshold = threshold3;
+                    useThreshold = true;// totalCost < omega3Threshold ? false : true;
+                }
+                else if (omega2Threshold > 0 && omega3Threshold == 0)
+                {
+                    currentThreshold = threshold2;
+                    useThreshold = true;// totalCost < omega2Threshold ? false : true;
+                }
                 if (b && varPairMap.ContainsKey(varValue))
                 {
-                    if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
+                    Debug.WriteLine("CurrentCost: " + currentCost);
+                    if (!useThreshold && currentCost == 100000000000)
                     {
-                        if (acceptOmega3NewPair)
+                        inducedPairs[varValue] = true;
+                        Debug.WriteLine("#ACCEPTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                    }
+                    else// if (currentCost <= currentThreshold)
+                    {
+                        inducedPairs[varValue] = false;
+                        //Debug.WriteLine("ACCEPTED PAIR: " + currentCost);
+                        Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                    }
+                    //else
+                    //    Debug.WriteLine("REJECTED PAIR: " + currentCost + "     totalCost: " + totalCost);
+                    //if (totalCost > 100000000000)
+                    //    Debug.WriteLine(totalCost);
+                }*/
+                if (b && varPairMap.ContainsKey(varValue))
+                {
+                    if (languageOption == 3) //Change threshold
+                        currentThreshold = 100000000000 + (1000000000 * omega2Threshold);
+                    if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
+                        inducedPairs[varValue] = true;
+                    else
+                        inducedPairs[varValue] = false;
+
+                    /*if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
+                    {
+                        if (acceptOmega3NewPair) //Expecting Omega3 results with new pairs
                             inducedPairs[varValue] = true;
-                        else
+                        else //Expecting Omega2 results
                         {
-                            if (currentCost != 100000000000)
+                            double newPairsThreshold = 100000000000 + (1000000000 * omega2Threshold);
+                            if (currentCost <= newPairsThreshold)
                                 inducedPairs[varValue] = true;
                             else
                                 inducedPairs[varValue] = false;
                         }
-                    }                                            
+                    }*/                                            
                 }                    
             }
 

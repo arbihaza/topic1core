@@ -211,7 +211,7 @@
                                HorizontalAlignment="Left"
                                VerticalAlignment="Bottom"
                                Content="Index: from-to" />
-                        <CheckBox x:Name="useNewPairs" Content="Use New Pairs" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="834,0,0,110" Click="useNewPairs_Click" IsChecked="True"/>
+                        <!--CheckBox x:Name="useNewPairs" Content="Use New Pairs" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="834,0,0,110" Click="useNewPairs_Click" IsChecked="True"/-->
                         <CheckBox x:Name="uniqenessConstraint" Content="1-1 result" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="834,0,0,86" Click="uniqenessConstraint_Click"/>
                     </Grid>
                 </TabItem>
@@ -226,9 +226,9 @@
                         </GroupBox>
                         <GroupBox Header="Threshold of Total Cost:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="580" Margin="302,10,-0.4,0">
                             <StackPanel HorizontalAlignment="Left" Height="133" Margin="10,10,0,0" VerticalAlignment="Top" Width="600">
-                                <!--Label Content="Threshold for WPMax-SAT instance #2:"/-->
+                                <!-- Label Content="Threshold for WPMax-SAT instance #2:"/-->
                                 <StackPanel Height="30" Width="600" Orientation="Horizontal">
-                                    <Slider x:Name="sliderThresholdOmega2" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="1" TickFrequency="0.1" ValueChanged="sliderThresholdOmega2_ValueChanged"/>
+                                    <Slider x:Name="sliderThresholdOmega2" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="0.01" TickFrequency="0.01" ValueChanged="sliderThresholdOmega2_ValueChanged"/>
                                     <TextBox Name="textBoxOmega2" Text="{Binding ElementName=sliderThresholdOmega2,Path=Value}" Width="40"/>
                                 </StackPanel>
                                 <!--Label Content="Threshold for WPMax-SAT instance #3:"/>

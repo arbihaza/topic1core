@@ -1447,7 +1447,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             //ICTest(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
             var watch = System.Diagnostics.Stopwatch.StartNew();
             solveAll();
-            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
             watch.Stop();
             var elapsedMs = watch.Elapsed;
@@ -1476,7 +1476,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             }
             var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
-            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
             Debug.WriteLine("Generate All Naive pairs is done");
 

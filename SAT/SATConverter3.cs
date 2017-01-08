@@ -575,7 +575,8 @@ namespace HDictInduction.Console.SAT
                 string[] lines = System.IO.File.ReadAllLines(file.FullName + ".inf");
                 if (lines.Length > 1)
                 {
-                    totalCost = long.Parse(lines[1]);
+                    totalCost = long.Parse(lines[1]); 
+
                     currentCost = totalCost - totalCostHistory;
                     totalCostHistory = totalCost;
                     /*if (omega3Threshold > 0)

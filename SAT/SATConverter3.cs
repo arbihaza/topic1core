@@ -40,6 +40,7 @@ namespace HDictInduction.Console.SAT
         public static int languageOption = 1;
         public static double omega2Threshold = 0;
         //public static double omega3Threshold = 0;
+        //testing
         public static bool acceptOmega3NewPair = true;
 
         private List<WordPair> GeneratePossiblePairs(BidirectionalGraph<Word, Edge<Word>> g)

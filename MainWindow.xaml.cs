@@ -1665,13 +1665,16 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
             //List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
             List<WordPair> allPairs = new List<WordPair>();
+            //List<WordPair> filteredPairs = new List<WordPair>();
             System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
             for (int i = startindex; i <= endindex; i++)
             {
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
                 allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            var output = allPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
+            double threshold = (double)sliderThresholdOmega2.Value;
+            var filteredPairs = allPairs.Where(t => t.Prob > threshold);
+            var output = filteredPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();

@@ -264,7 +264,11 @@ namespace HDictInduction.Console.SAT
             simpleSound.Play();
             Debug.WriteLine("Generate All Naive pairs is done");
             */
-            //pairs = pairs.OrderBy(p => p.Prob).ToList();
+            /*foreach (var pair in pairs)
+            {
+                if (pair.Prob < 0.3)
+                    pairs.Remove(pair);
+            }*/
             return pairs;
         }
 
@@ -867,8 +871,8 @@ namespace HDictInduction.Console.SAT
             List<string> ooPairString = new List<string>();
             foreach (var item in ooPairs.Keys)
                 if (ooPairs[item] > 0)
-                    ooPairString.Add(string.Format("{0},{1}", item.WordU, item.WordK));
-                    //ooPairString.Add(string.Format("{0},{1},{2}", ooPairs[item], item.WordU, item.WordK));
+                    //ooPairString.Add(string.Format("{0},{1}", item.WordU, item.WordK));
+                    ooPairString.Add(string.Format("{0},{1},{2}", ooPairs[item], item.WordU, item.WordK));
             string ooFileName = file.FullName.Replace(".wcnf", ".oo");
             System.IO.File.WriteAllLines(ooFileName, ooPairString.ToArray());
             int pairCount = ooPairString.Count;

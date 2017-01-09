@@ -178,22 +178,85 @@ namespace HDictInduction.Console.SAT
             return ooPairs;
         }
 
-        public List<KeyValuePair<Word, Word>> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> g)
+        private List<WordPair> GenerateAllPossiblePairs(BidirectionalGraph<Word, Edge<Word>> g)
         {
-            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
+            LinkCache = new Dictionary<int, SLink>();
+            LinkWeightCache = new Dictionary<SLink, float>();
+            BidirectionalGraph<Word, Edge<Word>> completeGraph = new BidirectionalGraph<Word, Edge<Word>>(false);
+            #region Prepare graph
+            foreach (var item in g.Vertices)
+                completeGraph.AddVertex(item);
+            
+            foreach (var item in g.Edges)
+            {
+                if (item.Source.Language == Console.Language.Chinese && item.Target.Language == Console.Language.Uyghur)
+                    completeGraph.AddEdge(new Edge<Word>(item.Target, item.Source));
+                else
+                    completeGraph.AddEdge(new Edge<Word>(item.Source, item.Target));
+            }
+            #endregion
+
+            List<WordPair> ooPairs = new List<WordPair>();
+            Dictionary<WordPair, bool> ooPairsDict = new Dictionary<WordPair, bool>();
+
+            var uWords = completeGraph.Vertices.Where(t => t.Language == Language.Uyghur);
+            var kWords = completeGraph.Vertices.Where(t => t.Language == Language.Kazak);
+            var cWords = completeGraph.Vertices.Where(t => t.Language == Language.Chinese);
+
+            int uWordCount = uWords.Count();
+            int kWordCount = kWords.Count();
+            int cWordCount = cWords.Count();
+            int u = 0, k = 0;
+
+            foreach (var uWord in uWords)
+            {
+                foreach (var edge1 in completeGraph.OutEdges(uWord))
+                {
+                    foreach (var edge2 in completeGraph.OutEdges(edge1.Target))
+                    {
+                        Word kWord = edge2.Target;
+                        WordPair ooPair = new WordPair(uWord, kWord);
+                        ooPair = calculateAllPairsProb(uWord, kWord, completeGraph, uWordCount, kWordCount);
+                        if (ooPairsDict.ContainsKey(ooPair))
+                            continue;
+                        else
+                        {
+                            ooPairsDict.Add(ooPair, true);
+                            ooPairs.Add(ooPair);
+                        }
+                    }
+                }
+
+            }
+            float maxWeight = 0;
+            return ooPairs;
+        }
+
+        public List<WordPair> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> graph)
+        {
+            /*BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
             #region Prepare graph
             foreach (var item in g.Vertices)
                 graph.AddVertex(item);
-            #endregion
-            List<KeyValuePair<Word, Word>> pairs = new List<KeyValuePair<Word, Word>>();
+            #endregion*/
+            List<WordPair> pairs = new List<WordPair>();
+            //List<KeyValuePair<Word, Word>> pairs = new List<KeyValuePair<Word, Word>>();
+            //List<KeyValuePair<List<KeyValuePair<Word, Word>>, float>> pairsProb = new List<KeyValuePair<List<KeyValuePair<Word, Word>>, float>>();
 
             var uWords = graph.Vertices.Where(t => t.Language == Language.Uyghur);
             var kWords = graph.Vertices.Where(t => t.Language == Language.Kazak);
             var cWords = graph.Vertices.Where(t => t.Language == Language.Chinese);
-
             foreach (var uWord in uWords)
+            {
+                float connectedUC = (float)graph.InDegree(uWord);
                 foreach (var kWord in kWords)
-                    pairs.Add(new KeyValuePair<Word, Word>(uWord, kWord));
+                {
+                    float connectedCK = (float)graph.InDegree(kWord);
+                    WordPair pair = new WordPair(uWord, kWord);
+                    pair.Prob = (connectedUC + connectedCK) / (2 * cWords.Count());
+                    pairs.Add(pair);
+                }       
+            }
 
             /*var output = pairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer\NaiveCombination.txt", output);
@@ -201,6 +264,7 @@ namespace HDictInduction.Console.SAT
             simpleSound.Play();
             Debug.WriteLine("Generate All Naive pairs is done");
             */
+            //pairs = pairs.OrderBy(p => p.Prob).ToList();
             return pairs;
         }
 
@@ -266,6 +330,130 @@ namespace HDictInduction.Console.SAT
 
                 pUK += PrUC * PrCK;// *wnStatCK;
                 pKU += PrKC * PrCU;                
+            }
+            probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
+
+            WordPair pair = new WordPair(uWord, kWord);
+            pair.Paths = paths;
+            pair.Prob = (float)probUK;
+
+            //set link weights
+            foreach (var item in pair.Paths)
+            {
+                //CU
+                if (item.LinkCU.Exists)
+                {
+                    item.LinkCU.Pr = 1f;
+                    if (!LinkWeightCache.ContainsKey(item.LinkCU))
+                        LinkWeightCache.Add(item.LinkCU, item.LinkCU.Pr);
+                }
+                else
+                {
+                    //pair.HasMissingCUEdge = true;
+                    float value = 0;
+                    if (LinkWeightCache.TryGetValue(item.LinkCU, out value))
+                    {
+                        if (pair.Prob > value)
+                            item.LinkCU.Pr = LinkWeightCache[item.LinkCU] = pair.Prob;
+                        else
+                            item.LinkCU.Pr = value;
+                    }
+                    else
+                    {
+                        item.LinkCU.Pr = pair.Prob;
+                        LinkWeightCache.Add(item.LinkCU, pair.Prob);
+                    }
+                }
+
+                //CK
+                if (item.LinkCK.Exists)//false)//
+                {
+                    item.LinkCK.Pr = 1f;
+                    if (!LinkWeightCache.ContainsKey(item.LinkCK))
+                        LinkWeightCache.Add(item.LinkCK, item.LinkCK.Pr);
+                }
+                else
+                {
+                    float value = 0;
+                    if (LinkWeightCache.TryGetValue(item.LinkCK, out value))
+                    {
+                        if (pair.Prob > value)
+                            LinkWeightCache[item.LinkCK] = item.LinkCK.Pr = pair.Prob;
+                        else
+                            item.LinkCK.Pr = value;
+                    }
+                    else
+                    {
+                        item.LinkCK.Pr = pair.Prob;
+                        LinkWeightCache.Add(item.LinkCK, pair.Prob);
+                    }
+                }
+            }
+            return pair;
+        }
+
+        private WordPair calculateAllPairsProb(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph, int uCount, int kCount)
+        {
+            Cache1.Clear();
+            List<SPath> paths = new List<SPath>();
+
+            foreach (var item in graph.OutEdges(uWord))
+            {
+                SLink linkCU = new SLink(item.Target, uWord);
+                linkCU.Exists = graph.ContainsEdge(uWord, item.Target);
+
+                SLink linkCK = new SLink(item.Target, kWord);
+                linkCK.Exists = graph.ContainsEdge(item.Target, kWord);
+
+                SPath path = new SPath(linkCU, linkCK);
+                paths.Add(path);
+
+                Cache1.Add(item.Target.ID, true);
+            }
+
+            foreach (var item in graph.InEdges(kWord))
+            {
+                if (Cache1.ContainsKey(item.Source.ID))
+                    continue;
+                SLink linkCK = new SLink(item.Source, kWord);
+                linkCK.Exists = graph.ContainsEdge(item.Source, kWord);
+
+                SLink linkCU = new SLink(item.Source, uWord);
+                linkCU.Exists = graph.ContainsEdge(uWord, item.Source);
+
+                SPath path = new SPath(linkCU, linkCK);
+                paths.Add(path);
+            }
+
+            //calculate probability
+
+            float couverage = Math.Min(uCount, kCount) / (float)Math.Max(uCount, kCount);
+            float pUK = 0;
+            float pKU = 0;
+            float probUK = 0;
+            float probKU = 0;
+            foreach (var item in paths)
+            {
+                //if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
+                if (!item.LinkCU.Exists)
+                {
+                    if (languageOption == 3)
+                        semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCU.WordNonPivot, item.LinkCU.WordPivot));
+                    continue;
+                }
+                if (!item.LinkCK.Exists)
+                {
+                    if (languageOption == 3)
+                        semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCK.WordPivot, item.LinkCK.WordNonPivot));
+                    continue;
+                }
+                float PrUC = 1.0f / (float)graph.OutDegree(item.LinkCU.WordNonPivot);
+                float PrCK = 1.0f / (float)graph.OutDegree(item.LinkCK.WordPivot);
+                float PrCU = 1.0f / (float)graph.InDegree(item.LinkCU.WordPivot);
+                float PrKC = 1.0f / (float)graph.InDegree(item.LinkCK.WordNonPivot);
+
+                pUK += PrUC * PrCK;// *wnStatCK;
+                pKU += PrKC * PrCU;
             }
             probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
 
@@ -474,12 +662,159 @@ namespace HDictInduction.Console.SAT
             return cnfBuffer.ToString();
         }
 
-        
+        private string encodeAll(List<WordPair> pairs, Dictionary<WordPair, int> ooPairs, FileInfo file)
+        {
+            if (pairVarMap == null)
+            {
+                pairVarMap = new Dictionary<WordPair, int>();
+                varPairMap = new Dictionary<int, WordPair>();
+            }
+            StringBuilder cnfBuffer = new StringBuilder();
+            StringBuilder buffer = new StringBuilder();
+
+            float maxProb = 0f;
+            int varCount = 0;
+            int varHelperCount = 0;
+            int clauseCount = 0;
+            bool overSized = false;
+            bool populateVarPairMap = pairVarMap.Count == 0;
+
+            if (linkVarMap == null)
+            {
+                linkVarMap = new Dictionary<SLink, string>();
+                List<SLink> links = LinkWeightCache.Keys.OrderBy(t => t.WordNonPivot.Language).OrderByDescending(t => t.Exists).ToList();
+                for (int i = 0; i < links.Count; i++)
+                {
+                    linkVarMap.Add(links[i], (i + 1).ToString());
+                }
+            }
+
+            varCount = linkVarMap.Count;
+            foreach (var item in linkVarMap)
+            {
+                string cost = string.Empty;
+                //double realCost = 0;
+                if (item.Key.Exists)
+                {
+                    cost = maxCost;
+                    cnfBuffer.AppendLine(string.Format("{0} {1} 0", cost, item.Value));
+                    clauseCount++;
+                }
+                else
+                {
+                    //realCost = Math.Round((1 - item.Key.Pr) * 1000000000); //realCost = Math.Round((1 - (item.Key.Pr / maxProb)) * 1000000000);
+                    cost = Math.Round((1 - item.Key.Pr) * 1000000000).ToString(); //cost = Math.Round((1 - (item.Key.Pr / maxProb)) * 1000000000).ToString();
+                    cnfBuffer.AppendLine(string.Format("{0} {1} 0", cost, "-" + item.Value));
+                    clauseCount++;
+                }
+            }
+
+            if (enableComment)
+            {
+                cnfBuffer.AppendLine("c ## Var-Link Mapping ##");
+                foreach (var item in linkVarMap)
+                {
+                    //if (item.Key.Exists)
+                    cnfBuffer.AppendLine(string.Format("c {0} {1}-->{2}", item.Value, item.Key.WordPivot.Value, item.Key.WordNonPivot.Value));
+                }
+            }
+
+            //Start of New Pair
+            int counter = 0;
+            Dictionary<WordPair, int> newInferedPair = new Dictionary<WordPair, int>();
+            foreach (var pair in pairs)
+            {
+                if (enableComment)
+                    cnfBuffer.AppendLine(string.Format("c Start of new pair:{0}   {1}<->{2}", varCount + 1, pair.WordU, pair.WordK));
+
+                //connect path and its links
+                ++varCount;
+
+                foreach (SPath spath in pair.Paths)
+                {
+                    cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCU], varCount));
+                    cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCK], varCount));
+                    clauseCount = clauseCount + 2;
+                }
+
+                //Add alpha to ensure pair from existing edges are prioritized first
+                if (pair.HasMissingEdge)
+                    newInferedPair[pair] = varCount;
+
+                if (populateVarPairMap)
+                {
+                    pairVarMap.Add(pair, varCount);
+                    varPairMap.Add(varCount, pair);
+                }
+
+            }
+            //Uniqueness constraint
+            if (languageOption == 1)
+            {
+                counter = 0;
+                if (enableComment)
+                    cnfBuffer.AppendLine(string.Format("c {0}", "==Start of one-to-one contraint 1 =="));
+                Dictionary<int, bool> pairing = new Dictionary<int, bool>();
+                foreach (var pair in pairs)
+                {
+                    int pairVar1 = pairVarMap[pair];
+                    var exclusivePairs = pairs.Where(t => (t.WordU == pair.WordU || t.WordK == pair.WordK) && t != pair);
+                    foreach (var pair2 in exclusivePairs)
+                    {
+                        int pairVar2 = pairVarMap[pair2];
+                        int pairIdentifier = string.Format("{0}-{1}", Math.Max(pairVar1, pairVar2), Math.Min(pairVar1, pairVar2)).GetHashCode();
+                        if (pairing.ContainsKey(pairIdentifier))
+                            continue;
+                        pairing.Add(pairIdentifier, true);
+                        cnfBuffer.AppendLine(string.Format("{0} -{1} -{2} 0", maxCost, pairVarMap[pair], pairVarMap[pair2]));
+                        clauseCount++;
+                    }
+                    if (enableComment)
+                        cnfBuffer.AppendLine(string.Format("c "));
+                }
+            }
+
+            if (enableComment)
+                cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Soft Constraint 2: New Induced Pair=="));
+
+            foreach (KeyValuePair<WordPair, int> newPair in newInferedPair)
+            {
+                varCount++;
+                double cost = 100000000000 + Math.Round((1 - newPairVarMap[newPair.Key]) * 1000000000);
+                cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, varCount, newPair.Value));
+                cnfBuffer.AppendLine(string.Format("{0} -{1} 0", cost, varCount));
+                clauseCount = clauseCount + 2;
+            }
+
+
+            if (enableComment)
+                cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Exclusive constraint =="));
+
+            buffer.Clear();
+            foreach (var item in pairs)
+                if (!ooPairs.ContainsKey(item))
+                    buffer.Append(pairVarMap[item] + " ");
+
+            cnfBuffer.AppendLine(string.Format("{0} {1} 0", maxCost, buffer.ToString().Trim()));
+            clauseCount++;
+
+            foreach (var item in ooPairs.Keys)
+            {
+                cnfBuffer.AppendLine(string.Format("{0} {1} 0", maxCost, pairVarMap[item]));
+                clauseCount++;
+            }
+
+            cnfBuffer.Insert(0, string.Format("p wcnf {0} {1} {2}{3}", varCount + varHelperCount, clauseCount, maxCost, Environment.NewLine));
+
+            return cnfBuffer.ToString();
+        }
+
         public string SolveGraph(BidirectionalGraph<Word, Edge<Word>> graph, FileInfo file)
         {
             long time = DateTime.Now.Ticks;
 
             List<SAT.WordPair> pairs = GeneratePossiblePairs(graph);
+            //List<SAT.WordPair> pairs = GenerateAllPossiblePairs(graph);
             Dictionary<WordPair, int> ooPairs = new Dictionary<WordPair, int>();
             Dictionary<int, WordPair> iterOOPairMap = new Dictionary<int, WordPair>();
             Dictionary<int, long> iterSolvingTimeMap = new Dictionary<int, long>();
@@ -496,6 +831,7 @@ namespace HDictInduction.Console.SAT
                 string objectiveFunctionValue = "-";
                 //write encode
                 string cnf = encode(pairs, ooPairs, file);
+                //string cnf = encodeAll(pairs, ooPairs, file);
                 StreamWriter cnfWriter = File.CreateText(file.FullName);
                 cnfWriter.Write(cnf);
                 cnfWriter.Flush();

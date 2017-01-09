@@ -1464,7 +1464,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             if (endindex >= dataBaseConnectedComponents2.Count)
                 throw new Exception("Index out of range!");
 
-            List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
+            //List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
 
             System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
             for (int i = startindex; i <= endindex; i++)
@@ -1472,13 +1472,13 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
                 System.IO.FileInfo cnfFile = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, string.Format("graph_{0}.wcnf", i + 1)));
                 new SATConverter3().SolveGraph(g, cnfFile);
-                allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
+                //allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
+            /*var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
-            Debug.WriteLine("Generate All Naive pairs is done");
+            Debug.WriteLine("Generate All Naive pairs is done");*/
 
             //Parallel.For(0, dataBaseConnectedComponents2.Count, 
             //    (i)=> new SATConverter3().SolveGraph(dataBaseConnectedComponents2[i],
@@ -1653,7 +1653,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             LoadConnectedComponets(null);
         }
 
-        private void buttonNaiveCombination_Click(object sender, RoutedEventArgs e)
+        /*private void buttonNaiveCombination_Click(object sender, RoutedEventArgs e)
         {
             int startindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[0].Trim()) - 1;
             int endindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[1].Trim()) - 1;
@@ -1672,6 +1672,31 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
             var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
+            System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            simpleSound.Play();
+            Debug.WriteLine("Generate All Naive pairs is done");
+        }*/
+
+        private void buttonNaiveCombination_Click(object sender, RoutedEventArgs e)
+        {
+            int startindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[0].Trim()) - 1;
+            int endindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[1].Trim()) - 1;
+
+            if (startindex < 0)
+                throw new Exception("Index out of range!");
+            if (endindex >= dataBaseConnectedComponents2.Count)
+                throw new Exception("Index out of range!");
+
+            List<WordPair> allPairs = new List<WordPair>();
+
+            System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
+            for (int i = startindex; i <= endindex; i++)
+            {
+                BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
+                allPairs = (new SATConverter3().GenerateAllNaivePairs(g));
+            }
+            var output = allPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
             simpleSound.Play();

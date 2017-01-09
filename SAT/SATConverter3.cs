@@ -178,29 +178,42 @@ namespace HDictInduction.Console.SAT
             return ooPairs;
         }
 
-        public List<KeyValuePair<Word, Word>> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> g)
+        public List<WordPair> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> graph)
         {
-            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
+            /*BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
             #region Prepare graph
             foreach (var item in g.Vertices)
                 graph.AddVertex(item);
             #endregion
-            List<KeyValuePair<Word, Word>> pairs = new List<KeyValuePair<Word, Word>>();
+            List<KeyValuePair<Word, Word>> pairs = new List<KeyValuePair<Word, Word>>();*/
+            List<WordPair> pairs = new List<WordPair>();
 
             var uWords = graph.Vertices.Where(t => t.Language == Language.Uyghur);
             var kWords = graph.Vertices.Where(t => t.Language == Language.Kazak);
             var cWords = graph.Vertices.Where(t => t.Language == Language.Chinese);
 
             foreach (var uWord in uWords)
+            {
+                float connectedUC = (float)graph.InDegree(uWord);
+                foreach (var kWord in kWords)
+                {
+                    float connectedCK = (float)graph.InDegree(kWord);
+                    WordPair pair = new WordPair(uWord, kWord);
+                    pair.Prob = (connectedUC + connectedCK) / (2 * cWords.Count());
+                    pairs.Add(pair);
+                }
+            }
+            /*foreach (var uWord in uWords)
                 foreach (var kWord in kWords)
                     pairs.Add(new KeyValuePair<Word, Word>(uWord, kWord));
-
+            */
             /*var output = pairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer\NaiveCombination.txt", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
             simpleSound.Play();
             Debug.WriteLine("Generate All Naive pairs is done");
             */
+            pairs = pairs.OrderBy(p => p.Prob).ToList();
             return pairs;
         }
 
@@ -531,8 +544,8 @@ namespace HDictInduction.Console.SAT
             List<string> ooPairString = new List<string>();
             foreach (var item in ooPairs.Keys)
                 if (ooPairs[item] > 0)
-                    ooPairString.Add(string.Format("{0},{1}", item.WordU, item.WordK));
-                    //ooPairString.Add(string.Format("{0},{1},{2}", ooPairs[item], item.WordU, item.WordK));
+                    //ooPairString.Add(string.Format("{0},{1}", item.WordU, item.WordK));
+                    ooPairString.Add(string.Format("{0},{1},{2}", ooPairs[item], item.WordU, item.WordK));
             string ooFileName = file.FullName.Replace(".wcnf", ".oo");
             System.IO.File.WriteAllLines(ooFileName, ooPairString.ToArray());
             int pairCount = ooPairString.Count;

@@ -1447,7 +1447,8 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
             //ICTest(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            double[] thresholdList = new double[] { 1, 2, 3.5, 4, 4.5, 5, 5.5 };
+            //double[] thresholdList = new double[] { 1, 2, 3.5, 4, 4.5, 5, 5.5 };
+            List<double> thresholdList = multipleThreshold.Text.Split(',').Select(double.Parse).ToList();
             foreach (double threshold in thresholdList)
             {
                 SATConverter3.autoThreshold = threshold;

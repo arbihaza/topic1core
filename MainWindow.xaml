@@ -198,7 +198,7 @@
                                HorizontalAlignment="Left"
                                VerticalAlignment="Top"
                                Content="-" />
-                        
+
                         <TextBox Name="textBoxIndex"
                                  Width="102"
                                  Height="23"
@@ -231,6 +231,8 @@
                                     <Slider x:Name="sliderThresholdOmega2" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="0.01" TickFrequency="0.01" ValueChanged="sliderThresholdOmega2_ValueChanged"/>
                                     <TextBox Name="textBoxOmega2" Text="{Binding ElementName=sliderThresholdOmega2,Path=Value}" Width="40"/>
                                 </StackPanel>
+                                <Label Content="Multiple Threshold input:"/>
+                                <TextBox Name="multipleThreshold" Height="30" Margin="10,0,50,0" Text="1, 2, 3.5, 4, 4.5, 5, 5.5 "/>
                                 <!--Label Content="Threshold for WPMax-SAT instance #3:"/>
                                 <StackPanel Height="30" Width="600" Orientation="Horizontal">
                                     <Slider x:Name="sliderThresholdOmega3" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="1" TickFrequency="10" ValueChanged="sliderThresholdOmega3_ValueChanged" Maximum="100"/>

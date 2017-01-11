@@ -625,12 +625,13 @@ namespace HDictInduction.Console
             v.ForEach(t => this.textBox_Output.AppendText(string.Format("{0}\t{1}{2}", t.Key, t.Value, Environment.NewLine)));
             //dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 1 && t.Vertices.Count() > 6).OrderBy(t => t.Vertices.Count()).ToList();
             dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 0 && t.Vertices.Count() > 0).OrderBy(t => t.Vertices.Count()).ToList();
+
             int id = 1;
 
-            this.listBox1.ItemsSource = dataBaseConnectedComponents2.Select(t => string.Format("[{0}] P:{1} U:{2} K:{3} E:{4}", id++, t.Vertices.Where(k => k.Language == Console.Language.Chinese).Count(), t.Vertices.Where(k => k.Language == Console.Language.Uyghur).Count(), t.Vertices.Where(k => k.Language == Console.Language.Kazak).Count(), t.EdgeCount));  
-
-            this.labelGraphCount.Content = string.Format("( {0} ) ", this.listBox1.Items.Count);
-
+            this.listBox1.ItemsSource = dataBaseConnectedComponents2.Select(t => string.Format("[{0}] P:{1} U:{2} K:{3} E:{4}", id++, t.Vertices.Where(k => k.Language == Console.Language.Chinese).Count(), t.Vertices.Where(k => k.Language == Console.Language.Uyghur).Count(), t.Vertices.Where(k => k.Language == Console.Language.Kazak).Count(), t.EdgeCount));
+            int totalTransgraph = this.listBox1.Items.Count;
+            this.labelGraphCount.Content = string.Format("( {0} ) ", totalTransgraph);
+            textBoxIndex.Text = string.Format("1 - {0}", totalTransgraph-1);
             //statistics
             String statis = "Cn\tUg\tKz\tEdges";            
             statis+= Environment.NewLine + String.Join(Environment.NewLine, dataBaseConnectedComponents2.Select(
@@ -1446,7 +1447,12 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
             //ICTest(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            solveAll();
+            double[] thresholdList = new double[] { 1, 2, 3.5, 4, 4.5, 5, 5.5 };
+            foreach (double threshold in thresholdList)
+            {
+                SATConverter3.autoThreshold = threshold;
+                solveAll(threshold);
+            }         
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
             watch.Stop();
@@ -1454,8 +1460,10 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             MessageBox.Show(string.Format("Done in {0} minutes", elapsedMs.ToString()));
         }
 
-        private void solveAll()
+        private void solveAll(double threshold)
         {
+            SATConverter3.allPairsNoRank.Clear();
+
             int startindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[0].Trim())-1;
             int endindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[1].Trim())-1;
             
@@ -1466,7 +1474,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
             //List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
 
-            System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
+            System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\"+threshold.ToString());
             for (int i = startindex; i <= endindex; i++)
             {
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
@@ -1474,12 +1482,14 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 new SATConverter3().SolveGraph(g, cnfFile);
                 //allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
+            System.IO.FileInfo allFileNameNoRank = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, "allPairs.csv"));
+            System.IO.File.WriteAllLines(allFileNameNoRank.FullName, SATConverter3.allPairsNoRank.ToArray());
             /*var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
-            Debug.WriteLine("Generate All Naive pairs is done");*/
-
+            Debug.WriteLine("Generate All Naive pairs is done");
+            */
             //Parallel.For(0, dataBaseConnectedComponents2.Count, 
             //    (i)=> new SATConverter3().SolveGraph(dataBaseConnectedComponents2[i],
             //        new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, string.Format("graph_{0}.wcnf", i + 1)))));
@@ -1663,17 +1673,20 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             if (endindex >= dataBaseConnectedComponents2.Count)
                 throw new Exception("Index out of range!");
 
-            List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
-
+            //List<KeyValuePair<Word, Word>> allPairs = new List<KeyValuePair<Word, Word>>();
+            List<WordPair> allPairs = new List<WordPair>();
+            //List<WordPair> filteredPairs = new List<WordPair>();
             System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer2\");
             for (int i = startindex; i <= endindex; i++)
             {
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
                 allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
+            double threshold = (double)sliderThresholdOmega2.Value;
+            var filteredPairs = allPairs.Where(t => t.Prob > threshold);
+            var output = filteredPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
-            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
+            System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
             Debug.WriteLine("Generate All Naive pairs is done");
         }*/
@@ -1694,10 +1707,13 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             for (int i = startindex; i <= endindex; i++)
             {
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
-                allPairs = (new SATConverter3().GenerateAllNaivePairs(g));
+                allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            var output = allPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
-            System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
+            double threshold = (double)sliderThresholdOmega2.Value;
+            var filteredPairs = allPairs.Where(t => t.Prob >= threshold);
+            //var output = filteredPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
+            var output = filteredPairs.Select(t => string.Format("{0},{1}", t.WordU, t.WordK));
+            System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.csv", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
             simpleSound.Play();
             Debug.WriteLine("Generate All Naive pairs is done");

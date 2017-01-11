@@ -79,9 +79,9 @@ namespace HDictInduction.Console.SAT
             var kWords = graph.Vertices.Where(t => t.Language == Language.Kazak);
             var cWords = graph.Vertices.Where(t => t.Language == Language.Chinese);
 
-            int uWordCount = uWords.Count();
-            int kWordCount = kWords.Count();
-            int cWordCount = cWords.Count();
+            //int uWordCount = uWords.Count();
+            //int kWordCount = kWords.Count();
+            //int cWordCount = cWords.Count();
             int u =0,k=0;
 
             foreach (var uWord in uWords)
@@ -92,25 +92,24 @@ namespace HDictInduction.Console.SAT
                     {
                         Word kWord = edge2.Target;
                         WordPair ooPair = new WordPair(uWord, kWord);
-                        ooPair = createNewEdges(uWord, kWord, graph, uWordCount, kWordCount);
-                        if (ooPairsDict.ContainsKey(ooPair))
+                        ooPair = createNewEdges(uWord, kWord, graph);//, uWordCount, kWordCount);
+                        /*if (ooPairsDict.ContainsKey(ooPair))
                             continue;
                         else
                         {
                             ooPairsDict.Add(ooPair, true);
                             ooPairs.Add(ooPair);
-                        } 
+                        } */
                     }
                 }
  
             }
-
+            //2nd cycle to add new blue edge and generate more pairs
             //Add new pair candidate from the semiCompleteGraph
             if (languageOption == 3)
             {
                 foreach (var uWord in uWords)
                 {
-                    Cache1.Clear();
                     Word cWord;
                     Word kWord;
 
@@ -121,9 +120,17 @@ namespace HDictInduction.Console.SAT
                         {
                             kWord = edge2.Target;
 
-                            //Cache1.Add(cWord.ID, true);
-                            List<SPath> paths = new List<SPath>();
                             WordPair pair = new WordPair(null, null);
+                            pair = createNewBlueEdges(uWord, kWord, semiCompleteGraph);
+                            if (ooPairsDict.ContainsKey(pair))
+                                continue;
+                            else
+                            {
+                                ooPairsDict.Add(pair, true);
+                                ooPairs.Add(pair);
+                            }
+                            /*
+                            List<SPath> paths = new List<SPath>();
                             pair = new WordPair(uWord, kWord);
                             string newUC = "-";
                             string newCK = "-";
@@ -171,7 +178,7 @@ namespace HDictInduction.Console.SAT
                                     ooPairsDict.Add(pair, true);
                                     ooPairs.Add(pair);
                                 }
-                            }
+                            }*/
                         }
                     }
                 }
@@ -179,60 +186,7 @@ namespace HDictInduction.Console.SAT
             float maxWeight = 0;
             return ooPairs;
         }
-
-        /*public List<KeyValuePair<Word, Word>> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> g)
-        {
-            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
-            #region Prepare graph
-            foreach (var item in g.Vertices)
-                completeGraph.AddVertex(item);
-            
-            foreach (var item in g.Edges)
-            {
-                if (item.Source.Language == Console.Language.Chinese && item.Target.Language == Console.Language.Uyghur)
-                    completeGraph.AddEdge(new Edge<Word>(item.Target, item.Source));
-                else
-                    completeGraph.AddEdge(new Edge<Word>(item.Source, item.Target));
-            }
-            #endregion
-            List<KeyValuePair<Word, Word>> pairs = new List<KeyValuePair<Word, Word>>();
-
-            List<WordPair> ooPairs = new List<WordPair>();
-            Dictionary<WordPair, bool> ooPairsDict = new Dictionary<WordPair, bool>();
-
-            var uWords = completeGraph.Vertices.Where(t => t.Language == Language.Uyghur);
-            var kWords = completeGraph.Vertices.Where(t => t.Language == Language.Kazak);
-            var cWords = completeGraph.Vertices.Where(t => t.Language == Language.Chinese);
-
-            int uWordCount = uWords.Count();
-            int kWordCount = kWords.Count();
-            int cWordCount = cWords.Count();
-            int u = 0, k = 0;
-
-            foreach (var uWord in uWords)
-            {
-                foreach (var edge1 in completeGraph.OutEdges(uWord))
-                {
-                    foreach (var edge2 in completeGraph.OutEdges(edge1.Target))
-                    {
-                        Word kWord = edge2.Target;
-                        WordPair ooPair = new WordPair(uWord, kWord);
-                        ooPair = calculateAllPairsProb(uWord, kWord, completeGraph, uWordCount, kWordCount);
-                        if (ooPairsDict.ContainsKey(ooPair))
-                            continue;
-                        else
-                        {
-                            ooPairsDict.Add(ooPair, true);
-                            ooPairs.Add(ooPair);
-                        }
-                    }
-                }
-
-            }
-            float maxWeight = 0;
-            return ooPairs;
-        }*/
-
+        
         public List<WordPair> GenerateAllNaivePairs(BidirectionalGraph<Word, Edge<Word>> graph)
         {
             /*BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
@@ -268,7 +222,7 @@ namespace HDictInduction.Console.SAT
             return pairs;
         }
 
-        private WordPair createNewEdges(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph, int uCount, int kCount)
+        private WordPair createNewEdges(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph)//, int uCount, int kCount)
         {
             Cache1.Clear();
             List<SPath> paths = new List<SPath>();
@@ -303,7 +257,7 @@ namespace HDictInduction.Console.SAT
 
             //calculate probability
 
-            float couverage = Math.Min(uCount, kCount) / (float)Math.Max(uCount, kCount);
+            //float couverage = Math.Min(uCount, kCount) / (float)Math.Max(uCount, kCount);
             float pUK = 0;
             float pKU = 0;
             float probUK = 0;
@@ -323,13 +277,14 @@ namespace HDictInduction.Console.SAT
                         semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCK.WordPivot, item.LinkCK.WordNonPivot));
                     continue;
                 }
-                float PrUC = 1.0f / (float)graph.OutDegree(item.LinkCU.WordNonPivot);
-                float PrCK = 1.0f / (float)graph.OutDegree(item.LinkCK.WordPivot);
-                float PrCU = 1.0f / (float)graph.InDegree(item.LinkCU.WordPivot);
-                float PrKC = 1.0f / (float)graph.InDegree(item.LinkCK.WordNonPivot);
+                float PrCU = 1.0f / (float)graph.OutDegree(item.LinkCU.WordNonPivot); //P(C|U) = P(C&U)/P(U)
+                float PrKC = 1.0f / (float)graph.OutDegree(item.LinkCK.WordPivot);    //P(K|C) = P(K&C)/P(C)
+                float PrCK = 1.0f / (float)graph.InDegree(item.LinkCK.WordNonPivot);  //P(C|K) = P(C&K)/P(K)
+                float PrUC = 1.0f / (float)graph.InDegree(item.LinkCU.WordPivot);     //P(U|C) = P(U&C)/P(C)
 
-                pUK += PrUC * PrCK;// *wnStatCK;
-                pKU += PrKC * PrCU;                
+                pKU += PrCU * PrKC;
+                pUK += PrCK * PrUC;
+
             }
             probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
 
@@ -392,7 +347,7 @@ namespace HDictInduction.Console.SAT
             return pair;
         }
 
-        private WordPair calculateAllPairsProb(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph, int uCount, int kCount)
+        private WordPair createNewBlueEdges(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph)
         {
             Cache1.Clear();
             List<SPath> paths = new List<SPath>();
@@ -427,35 +382,43 @@ namespace HDictInduction.Console.SAT
 
             //calculate probability
 
-            float couverage = Math.Min(uCount, kCount) / (float)Math.Max(uCount, kCount);
             float pUK = 0;
             float pKU = 0;
             float probUK = 0;
             float probKU = 0;
             foreach (var item in paths)
             {
-                //if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
-                if (!item.LinkCU.Exists)
-                {
-                    if (languageOption == 3)
-                        semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCU.WordNonPivot, item.LinkCU.WordPivot));
+                if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containing non-existance link
                     continue;
-                }
-                if (!item.LinkCK.Exists)
+                float PrCU = 0.0f;
+                float PrKC = 0.0f;
+                float PrCK = 0.0f;
+                float PrUC = 0.0f;
+                foreach (var downEdgeCU in graph.OutEdges(item.LinkCU.WordNonPivot)) //Loop through down-path from nonpivot1 to pivot
                 {
-                    if (languageOption == 3) 
-                        semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCK.WordPivot, item.LinkCK.WordNonPivot));
-                    continue;
+                    PrCU += 1.0f / LinkWeightCache[new SLink(downEdgeCU.Target, downEdgeCU.Source)]; //P(C|U) = P(C&U)/P(U)
                 }
-                float PrUC = 1.0f / (float)graph.OutDegree(item.LinkCU.WordNonPivot);
-                float PrCK = 1.0f / (float)graph.OutDegree(item.LinkCK.WordPivot);
-                float PrCU = 1.0f / (float)graph.InDegree(item.LinkCU.WordPivot);
-                float PrKC = 1.0f / (float)graph.InDegree(item.LinkCK.WordNonPivot);
-
-                pUK += PrUC * PrCK;// *wnStatCK;
+                foreach (var downEdgeCK in graph.OutEdges(item.LinkCK.WordPivot)) //Loop through down-path from pivot to nonpivot2
+                {
+                    PrKC += 1.0f / LinkWeightCache[new SLink(downEdgeCK.Source, downEdgeCK.Target)]; //P(K|C) = P(K&C)/P(C)
+                }
+                foreach (var upEdgeCK in graph.InEdges(item.LinkCK.WordNonPivot)) //Loop through up-path from nonpivot2 to pivot
+                {
+                    PrCK += 1.0f / LinkWeightCache[new SLink(upEdgeCK.Source, upEdgeCK.Target)]; //P(C|K) = P(C&K)/P(K)
+                }
+                foreach (var upEdgeCU in graph.InEdges(item.LinkCU.WordPivot)) //Loop through up-path from pivot to nonpivot1
+                {
+                    PrUC += 1.0f / LinkWeightCache[new SLink(upEdgeCU.Target, upEdgeCU.Source)]; //P(U|C) = P(U&C)/P(C)
+                }
+                
+                PrCU = 1.0f / PrCU;
+                PrKC = 1.0f / PrKC;
+                PrCK = 1.0f / PrCK;
+                PrUC = 1.0f / PrUC;
+                pUK += PrUC * PrCK;
                 pKU += PrKC * PrCU;                
             }
-            probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
+            probUK = pUK * pKU;
 
             WordPair pair = new WordPair(uWord, kWord);
             pair.Paths = paths;
@@ -465,15 +428,8 @@ namespace HDictInduction.Console.SAT
             foreach (var item in pair.Paths)
             {
                 //CU
-                if (item.LinkCU.Exists)
+                if (!item.LinkCU.Exists)
                 {
-                    item.LinkCU.Pr = 1f;
-                    if (!LinkWeightCache.ContainsKey(item.LinkCU))
-                        LinkWeightCache.Add(item.LinkCU, item.LinkCU.Pr);
-                }
-                else
-                {
-                    //pair.HasMissingCUEdge = true;
                     float value = 0;
                     if (LinkWeightCache.TryGetValue(item.LinkCU, out value))
                     {
@@ -490,13 +446,7 @@ namespace HDictInduction.Console.SAT
                 }
 
                 //CK
-                if (item.LinkCK.Exists)//false)//
-                {
-                    item.LinkCK.Pr = 1f;
-                    if (!LinkWeightCache.ContainsKey(item.LinkCK))
-                        LinkWeightCache.Add(item.LinkCK, item.LinkCK.Pr);
-                }
-                else
+                if (!item.LinkCK.Exists)
                 {
                     float value = 0;
                     if (LinkWeightCache.TryGetValue(item.LinkCK, out value))

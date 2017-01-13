@@ -39,7 +39,7 @@ namespace HDictInduction.Console
 
         //private IL.ILSolver3 _ilsolver = null;
         
-        private IBidirectionalGraph<object, IEdge<object>> _graph = null;
+        private IBidirectionalGraph<object, IEdge<object>> _graph = null;        
 
         public MainWindow()
         {
@@ -1450,6 +1450,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             var watch = System.Diagnostics.Stopwatch.StartNew();
             //double[] thresholdList = new double[] { 1, 2, 3.5, 4, 4.5, 5, 5.5 };
             List<double> thresholdList = multipleThreshold.Text.Split(',').Select(double.Parse).ToList();
+            SATConverter3.symmetryCycle = int.Parse(symmetryCycleTextBox.Text);
             foreach (double threshold in thresholdList)
             {
                 SATConverter3.autoThreshold = threshold;
@@ -1484,7 +1485,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 new SATConverter3().SolveGraph(g, cnfFile);
                 //allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            System.IO.FileInfo allFileNameNoRank = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, "allPairs.csv"));
+            System.IO.FileInfo allFileNameNoRank = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, "big_"+languageSelect.Text+"_c"+SATConverter3.symmetryCycle+"_omega"+SATConverter3.languageOption+"T"+threshold.ToString()+".csv"));
             System.IO.File.WriteAllLines(allFileNameNoRank.FullName, SATConverter3.allPairsNoRank.ToArray());
             /*var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
@@ -1607,6 +1608,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 return;
             if (this.listBox1.SelectedIndex < 0)
                 return;
+            SATConverter3.symmetryCycle = int.Parse(symmetryCycleTextBox.Text);
             BidirectionalGraph<Word, Edge<Word>> graph1 = dataBaseConnectedComponents2[this.listBox1.SelectedIndex];
             System.IO.DirectoryInfo directory = new System.IO.DirectoryInfo(@"buffer\");
             System.IO.FileInfo cnfFile = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, string.Format("graph_Single.wcnf", 1)));
@@ -1791,11 +1793,11 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 //Debug.WriteLine("LC2");
                 SATConverter3.languageOption = 2;
             }
-            else if (LC2b.IsChecked == true)
+            /*else if (LC2b.IsChecked == true)
             {
                 //Debug.WriteLine("LC2b");
                 SATConverter3.languageOption = 3;
-            }
+            }*/
         }
 
         /*private void useNewPairs_Click(object sender, RoutedEventArgs e)
@@ -1805,9 +1807,9 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
         private void uniqenessConstraint_Click(object sender, RoutedEventArgs e)
         {
-            SATConverter3.languageOption = uniqenessConstraint.IsChecked == true ? 1 : 3;
+            SATConverter3.languageOption = uniqenessConstraint.IsChecked == true ? 1 : 2;
         }
-
+        
         /*private void MenuItem_Click_5(object sender, RoutedEventArgs e)
         {
             if (dataBaseConnectedComponents2 == null)

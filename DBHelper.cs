@@ -28,7 +28,7 @@ namespace HDictInduction.Console
         
         private static DictBase _DictBase;
 
-        private static zuk_dbSQLDataSet.zuk_fixedDataTable _ZukTable;
+        public static zuk_dbSQLDataSet.zuk_fixedDataTable _ZukTable;
 
         public static DictBase MyDictBase {
             get { return _DictBase; }

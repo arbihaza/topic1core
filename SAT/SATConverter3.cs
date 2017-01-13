@@ -42,9 +42,9 @@ namespace HDictInduction.Console.SAT
         public static double omega2Threshold = 0;
         public static double autoThreshold = 0;
         //public static double omega3Threshold = 0;
-        public static bool acceptOmega3NewPair = true;
+        //public static bool acceptOmega3NewPair = true;
         public static List<string> allPairsNoRank = new List<string>();
-
+        
         private List<WordPair> GeneratePossiblePairs(BidirectionalGraph<Word, Edge<Word>> g)
         {
             LinkCache = new Dictionary<int, SLink>();
@@ -107,7 +107,7 @@ namespace HDictInduction.Console.SAT
             }
             //2nd cycle to add new blue edge and generate more pairs
             //Add new pair candidate from the semiCompleteGraph
-            if (languageOption == 3 && symmetryCycle > 1)
+            if (languageOption == 2 && symmetryCycle > 1)
             {
                 ooPairsDict.Clear();
                 ooPairs.Clear();
@@ -271,13 +271,13 @@ namespace HDictInduction.Console.SAT
                 //if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
                 if (!item.LinkCU.Exists)
                 {
-                    if (languageOption == 3)
+                    if (languageOption == 2)
                         semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCU.WordNonPivot, item.LinkCU.WordPivot));
                     continue;
                 }
                 if (!item.LinkCK.Exists)
                 {
-                    if (languageOption == 3) 
+                    if (languageOption == 2) 
                         semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCK.WordPivot, item.LinkCK.WordNonPivot));
                     continue;
                 }
@@ -781,7 +781,7 @@ namespace HDictInduction.Console.SAT
                 }*/
                 if (b && varPairMap.ContainsKey(varValue))
                 {
-                    //if (languageOption == 3) //Change threshold
+                    //if (languageOption == 2) //Change threshold
                     //    currentThreshold = 100000000000 + (1000000000 * omega2Threshold);
                     if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
                         inducedPairs[varValue] = true;

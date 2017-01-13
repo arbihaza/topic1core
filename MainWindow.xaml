@@ -230,21 +230,21 @@
                 </TabItem>
                 <TabItem Header="Options" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="55.2">
                     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                        <GroupBox Header="Select WPMax-SAT instance:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="217" Margin="10,10,0,0" >
+                        <!--GroupBox Header="Select WPMax-SAT instance:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="217" Margin="10,10,0,0" >
                             <StackPanel HorizontalAlignment="Left" Height="133" Margin="10,20,0,0" VerticalAlignment="Top" Width="382">
                                 <RadioButton Name="LC1" Content="WPMax-SAT instance #1" Height="30" Checked="WPMaxSAT_Checked"/>
                                 <RadioButton Name="LC2" IsChecked="True" Content="WPMax-SAT instance #2" Height="30" Checked="WPMaxSAT_Checked"/>
-                                <!--RadioButton Name="LC2b" IsChecked="True" Content="WPMax-SAT instance #3" Height="30" Checked="WPMaxSAT_Checked"/-->
+                                <RadioButton Name="LC2b" IsChecked="True" Content="WPMax-SAT instance #3" Height="30" Checked="WPMaxSAT_Checked"/>
                             </StackPanel>
-                        </GroupBox>
-                        <GroupBox Header="Threshold of Total Cost:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="580" Margin="302,10,-0.4,0">
+                        </-->
+                        <GroupBox Header="Multiple Threshold input:" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="580" Margin="10,10,0,0">
                             <StackPanel HorizontalAlignment="Left" Height="133" Margin="10,10,0,0" VerticalAlignment="Top" Width="600">
                                 <!-- Label Content="Threshold for WPMax-SAT instance #2:"/-->
-                                <StackPanel Height="30" Width="600" Orientation="Horizontal">
+                                <!--StackPanel Height="30" Width="600" Orientation="Horizontal">
                                     <Slider x:Name="sliderThresholdOmega2" Width="500" Margin="0,0,10,0" TickPlacement="TopLeft" SmallChange="0.01" TickFrequency="0.01" ValueChanged="sliderThresholdOmega2_ValueChanged"/>
                                     <TextBox Name="textBoxOmega2" Text="{Binding ElementName=sliderThresholdOmega2,Path=Value}" Width="40"/>
-                                </StackPanel>
-                                <Label Content="Multiple Threshold input:"/>
+                                </-->
+                                <!--Label Content="Multiple Threshold input:"/-->
                                 <TextBox Name="multipleThreshold" Height="30" Margin="10,0,50,0" Text="0.1, 1, 2, 3.5, 4, 4.5, 5, 5.5 "/>
                                 <!--Label Content="Threshold for WPMax-SAT instance #3:"/>
                                 <StackPanel Height="30" Width="600" Orientation="Horizontal">

@@ -38,8 +38,8 @@ namespace HDictInduction.Console.SAT
         private long currentCost;
 
         public static int symmetryCycle = 1;
-        public static int languageOption = 1;
-        public static double omega2Threshold = 0;
+        public static int languageOption = 2;
+        //public static double omega2Threshold = 0;
         public static double autoThreshold = 0;
         //public static double omega3Threshold = 0;
         //public static bool acceptOmega3NewPair = true;
@@ -693,9 +693,9 @@ namespace HDictInduction.Console.SAT
             //For omega3, threshold only works on existing pair, currently the new pair in D_N will all have constant cost, 
             //so, no need to filter, either accept them all or not at all
             //Thus, we can use one threshold for both omega2 and omega3 (with option to accept new pair in D_N or not)                                         
-            if (autoThreshold > 0)
-                omega2Threshold = autoThreshold;
-            double threshold2 = 1000000000 * omega2Threshold;
+            //if (autoThreshold > 0)
+            //    omega2Threshold = autoThreshold;
+            double threshold2 = 1000000000 * autoThreshold;// omega2Threshold;
             //double threshold3 = 100000000000 + (1000000000 * omega3Threshold);
 
             Dictionary<int, bool> inducedPairs = new Dictionary<int, bool>();
@@ -783,25 +783,25 @@ namespace HDictInduction.Console.SAT
                 {
                     //if (languageOption == 2) //Change threshold
                     //    currentThreshold = 100000000000 + (1000000000 * omega2Threshold);
-                    if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
+                    if (autoThreshold == 0 || (autoThreshold > 0 && currentCost <= currentThreshold))
                         inducedPairs[varValue] = true;
                     else
                         inducedPairs[varValue] = false;
 
-                    /*if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
+                    /*if (autoThreshold == 0 || (autoThreshold > 0 && currentCost <= currentThreshold))
                     {
                         if (acceptOmega3NewPair) //Expecting Omega3 results with new pairs
                             inducedPairs[varValue] = true;
                         else //Expecting Omega2 results
                         {
-                            double newPairsThreshold = 100000000000 + (1000000000 * omega2Threshold);
+                            double newPairsThreshold = 100000000000 + (1000000000 * autoThreshold);
                             if (currentCost <= newPairsThreshold)
                                 inducedPairs[varValue] = true;
                             else
                                 inducedPairs[varValue] = false;
                         }
-                    }*/                                            
-                }                    
+                    }*/
+                }
             }
 
             return new KeyValuePair<Dictionary<int, bool>, bool>(inducedPairs, decision);

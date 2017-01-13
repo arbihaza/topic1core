@@ -1485,7 +1485,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 new SATConverter3().SolveGraph(g, cnfFile);
                 //allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            System.IO.FileInfo allFileNameNoRank = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, "big_"+languageSelect.Text+"_c"+SATConverter3.symmetryCycle+"_omega"+SATConverter3.languageOption+"T"+threshold.ToString()+".csv"));
+            System.IO.FileInfo allFileNameNoRank = new System.IO.FileInfo(System.IO.Path.Combine(directory.FullName, @"..\") + "big_" +languageSelect.Text+"_c"+SATConverter3.symmetryCycle+"_omega"+SATConverter3.languageOption+"T"+threshold.ToString()+".csv");
             System.IO.File.WriteAllLines(allFileNameNoRank.FullName, SATConverter3.allPairsNoRank.ToArray());
             /*var output = allPairs.Select(t => string.Format("{0},{1}", t.Key, t.Value));
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.txt", output);
@@ -1713,7 +1713,8 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
                 BidirectionalGraph<Word, Edge<Word>> g = dataBaseConnectedComponents2[i];
                 allPairs.AddRange(new SATConverter3().GenerateAllNaivePairs(g));
             }
-            double threshold = (double)sliderThresholdOmega2.Value;
+            //double threshold = (double)sliderThresholdOmega2.Value;
+            double threshold = 0;
             var filteredPairs = allPairs.Where(t => t.Prob >= threshold);
             //var output = filteredPairs.Select(t => string.Format("{0},{1},{2}", t.Prob, t.WordU, t.WordK));
             var output = filteredPairs.Select(t => string.Format("{0},{1}", t.WordU, t.WordK));
@@ -1767,12 +1768,12 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             ICTest(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
         }
 
-        private void sliderThresholdOmega2_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        /*private void sliderThresholdOmega2_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             double sliderThresholdOmega2Value = (double)sliderThresholdOmega2.Value;
             SATConverter3.omega2Threshold = sliderThresholdOmega2Value;// int.Parse(this.textBoxOmega2Threshold.Text);   
             //Debug.WriteLine("sliderThresholdOmega2Value:"+ sliderThresholdOmega2Value);
-        }
+        }*/
 
         /*private void sliderThresholdOmega3_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -1783,7 +1784,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
         private void WPMaxSAT_Checked(object sender, RoutedEventArgs e)
         {
-            if (LC1.IsChecked == true)
+            /*if (LC1.IsChecked == true)
             {
                 //Debug.WriteLine("LC1");
                 SATConverter3.languageOption = 1;
@@ -1808,6 +1809,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
         private void uniqenessConstraint_Click(object sender, RoutedEventArgs e)
         {
             SATConverter3.languageOption = uniqenessConstraint.IsChecked == true ? 1 : 2;
+            //MessageBox.Show(SATConverter3.languageOption.ToString());
         }
         
         /*private void MenuItem_Click_5(object sender, RoutedEventArgs e)

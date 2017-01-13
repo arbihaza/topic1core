@@ -624,7 +624,8 @@ namespace HDictInduction.Console
 
             v.ForEach(t => this.textBox_Output.AppendText(string.Format("{0}\t{1}{2}", t.Key, t.Value, Environment.NewLine)));
             //dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 1 && t.Vertices.Count() > 6).OrderBy(t => t.Vertices.Count()).ToList();
-            dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 0 && t.Vertices.Count() > 0).OrderBy(t => t.Vertices.Count()).ToList();
+            //dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 0 && t.Vertices.Count() > 0).OrderBy(t => t.Vertices.Count()).ToList();
+            dataBaseConnectedComponents2 = dataBaseConnectedComponents.Where(t => t.Vertices.Where(p => p.Language == Console.Language.Chinese).Count() > 1).OrderBy(t => t.Vertices.Count()).ToList();
 
             int id = 1;
 

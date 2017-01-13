@@ -35,8 +35,9 @@ namespace HDictInduction.Console.SAT
         private long totalCost;
         private long totalCostHistory;
         private long totalCostHistory2;
-        private long currentCost;    
+        private long currentCost;
 
+        public static int symmetryCycle = 1;
         public static int languageOption = 1;
         public static double omega2Threshold = 0;
         public static double autoThreshold = 0;
@@ -93,21 +94,24 @@ namespace HDictInduction.Console.SAT
                         Word kWord = edge2.Target;
                         WordPair ooPair = new WordPair(uWord, kWord);
                         ooPair = createNewEdges(uWord, kWord, graph);//, uWordCount, kWordCount);
-                        /*if (ooPairsDict.ContainsKey(ooPair))
+                        if (ooPairsDict.ContainsKey(ooPair))
                             continue;
                         else
                         {
                             ooPairsDict.Add(ooPair, true);
                             ooPairs.Add(ooPair);
-                        } */
+                        } 
                     }
                 }
  
             }
             //2nd cycle to add new blue edge and generate more pairs
             //Add new pair candidate from the semiCompleteGraph
-            if (languageOption == 3)
+            if (languageOption == 3 && symmetryCycle > 1)
             {
+                ooPairsDict.Clear();
+                ooPairs.Clear();
+
                 foreach (var uWord in uWords)
                 {
                     Word cWord;
@@ -611,154 +615,7 @@ namespace HDictInduction.Console.SAT
 
             return cnfBuffer.ToString();
         }
-
-        private string encodeAll(List<WordPair> pairs, Dictionary<WordPair, int> ooPairs, FileInfo file)
-        {
-            if (pairVarMap == null)
-            {
-                pairVarMap = new Dictionary<WordPair, int>();
-                varPairMap = new Dictionary<int, WordPair>();
-            }
-            StringBuilder cnfBuffer = new StringBuilder();
-            StringBuilder buffer = new StringBuilder();
-
-            float maxProb = 0f;
-            int varCount = 0;
-            int varHelperCount = 0;
-            int clauseCount = 0;
-            bool overSized = false;
-            bool populateVarPairMap = pairVarMap.Count == 0;
-
-            if (linkVarMap == null)
-            {
-                linkVarMap = new Dictionary<SLink, string>();
-                List<SLink> links = LinkWeightCache.Keys.OrderBy(t => t.WordNonPivot.Language).OrderByDescending(t => t.Exists).ToList();
-                for (int i = 0; i < links.Count; i++)
-                {
-                    linkVarMap.Add(links[i], (i + 1).ToString());
-                }
-            }
-
-            varCount = linkVarMap.Count;
-            foreach (var item in linkVarMap)
-            {
-                string cost = string.Empty;
-                //double realCost = 0;
-                if (item.Key.Exists)
-                {
-                    cost = maxCost;
-                    cnfBuffer.AppendLine(string.Format("{0} {1} 0", cost, item.Value));
-                    clauseCount++;
-                }
-                else
-                {
-                    //realCost = Math.Round((1 - item.Key.Pr) * 1000000000); //realCost = Math.Round((1 - (item.Key.Pr / maxProb)) * 1000000000);
-                    cost = Math.Round((1 - item.Key.Pr) * 1000000000).ToString(); //cost = Math.Round((1 - (item.Key.Pr / maxProb)) * 1000000000).ToString();
-                    cnfBuffer.AppendLine(string.Format("{0} {1} 0", cost, "-" + item.Value));
-                    clauseCount++;
-                }
-            }
-
-            if (enableComment)
-            {
-                cnfBuffer.AppendLine("c ## Var-Link Mapping ##");
-                foreach (var item in linkVarMap)
-                {
-                    //if (item.Key.Exists)
-                    cnfBuffer.AppendLine(string.Format("c {0} {1}-->{2}", item.Value, item.Key.WordPivot.Value, item.Key.WordNonPivot.Value));
-                }
-            }
-
-            //Start of New Pair
-            int counter = 0;
-            Dictionary<WordPair, int> newInferedPair = new Dictionary<WordPair, int>();
-            foreach (var pair in pairs)
-            {
-                if (enableComment)
-                    cnfBuffer.AppendLine(string.Format("c Start of new pair:{0}   {1}<->{2}", varCount + 1, pair.WordU, pair.WordK));
-
-                //connect path and its links
-                ++varCount;
-
-                foreach (SPath spath in pair.Paths)
-                {
-                    cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCU], varCount));
-                    cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCK], varCount));
-                    clauseCount = clauseCount + 2;
-                }
-
-                //Add alpha to ensure pair from existing edges are prioritized first
-                if (pair.HasMissingEdge)
-                    newInferedPair[pair] = varCount;
         
-                if (populateVarPairMap)
-                {
-                    pairVarMap.Add(pair, varCount);
-                    varPairMap.Add(varCount, pair);
-                }
-
-            }
-            //Uniqueness constraint
-            if (languageOption == 1)
-            {
-                counter = 0;
-                if (enableComment)
-                    cnfBuffer.AppendLine(string.Format("c {0}", "==Start of one-to-one contraint 1 =="));
-                Dictionary<int, bool> pairing = new Dictionary<int, bool>();
-                foreach (var pair in pairs)
-                {
-                    int pairVar1 = pairVarMap[pair];
-                    var exclusivePairs = pairs.Where(t => (t.WordU == pair.WordU || t.WordK == pair.WordK) && t != pair);
-                    foreach (var pair2 in exclusivePairs)
-                    {
-                        int pairVar2 = pairVarMap[pair2];
-                        int pairIdentifier = string.Format("{0}-{1}", Math.Max(pairVar1, pairVar2), Math.Min(pairVar1, pairVar2)).GetHashCode();
-                        if (pairing.ContainsKey(pairIdentifier))
-                            continue;
-                        pairing.Add(pairIdentifier, true);
-                        cnfBuffer.AppendLine(string.Format("{0} -{1} -{2} 0", maxCost, pairVarMap[pair], pairVarMap[pair2]));
-                        clauseCount++;
-                    }
-                    if (enableComment)
-                        cnfBuffer.AppendLine(string.Format("c "));
-                }
-            }
-
-            if (enableComment)
-                cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Soft Constraint 2: New Induced Pair=="));
-
-            foreach (KeyValuePair<WordPair, int> newPair in newInferedPair)
-            {
-                varCount++;
-                double cost = 100000000000 + Math.Round((1 - newPairVarMap[newPair.Key]) * 1000000000);
-                cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, varCount, newPair.Value));
-                cnfBuffer.AppendLine(string.Format("{0} -{1} 0", cost, varCount));
-                clauseCount = clauseCount + 2;
-            }
-
-
-            if (enableComment)
-                cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Exclusive constraint =="));
-
-            buffer.Clear();
-            foreach (var item in pairs)
-                if (!ooPairs.ContainsKey(item))
-                    buffer.Append(pairVarMap[item] + " ");
-
-            cnfBuffer.AppendLine(string.Format("{0} {1} 0", maxCost, buffer.ToString().Trim()));
-            clauseCount++;
-
-            foreach (var item in ooPairs.Keys)
-            {
-                cnfBuffer.AppendLine(string.Format("{0} {1} 0", maxCost, pairVarMap[item]));
-                clauseCount++;
-            }
-
-            cnfBuffer.Insert(0, string.Format("p wcnf {0} {1} {2}{3}", varCount + varHelperCount, clauseCount, maxCost, Environment.NewLine));
-
-            return cnfBuffer.ToString();
-        }
-
         public string SolveGraph(BidirectionalGraph<Word, Edge<Word>> graph, FileInfo file)
         {
             long time = DateTime.Now.Ticks;
@@ -924,8 +781,8 @@ namespace HDictInduction.Console.SAT
                 }*/
                 if (b && varPairMap.ContainsKey(varValue))
                 {
-                    if (languageOption == 3) //Change threshold
-                        currentThreshold = 100000000000 + (1000000000 * omega2Threshold);
+                    //if (languageOption == 3) //Change threshold
+                    //    currentThreshold = 100000000000 + (1000000000 * omega2Threshold);
                     if (omega2Threshold == 0 || (omega2Threshold > 0 && currentCost <= currentThreshold))
                         inducedPairs[varValue] = true;
                     else

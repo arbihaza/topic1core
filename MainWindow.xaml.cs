@@ -1455,12 +1455,12 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             {
                 SATConverter3.autoThreshold = threshold;
                 solveAll(threshold);
-            }         
+            }                    
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\tada.wav");
             simpleSound.Play();
             watch.Stop();
             var elapsedMs = watch.Elapsed;
-            MessageBox.Show(string.Format("Done in {0} minutes", elapsedMs.ToString()));
+            MessageBox.Show(string.Format("Done in {0} minutes. Highest cost: {1}", elapsedMs.ToString(), SATConverter3.highestCost));
         }
 
         private void solveAll(double threshold)
@@ -1697,7 +1697,8 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
 
         private void buttonNaiveCombination_Click(object sender, RoutedEventArgs e)
         {
-            int startindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[0].Trim()) - 1;
+            NaiveCombination(dataBaseConnectedComponents2.Take(dataBaseConnectedComponents2.Count - 1).ToList());
+            /*int startindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[0].Trim()) - 1;
             int endindex = int.Parse(this.textBoxIndex.Text.Trim().Split('-')[1].Trim()) - 1;
 
             if (startindex < 0)
@@ -1721,7 +1722,7 @@ clusterer.LoadFullGraphClustersFromFile(@"d:\transgraph_clusters_150.txt");
             System.IO.File.WriteAllLines(@"buffer4\NaiveCombination.csv", output);
             System.Media.SoundPlayer simpleSound = new System.Media.SoundPlayer(@"c:\Windows\Media\Ring03.wav");
             simpleSound.Play();
-            Debug.WriteLine("Generate All Naive pairs is done");
+            Debug.WriteLine("Generate All Naive pairs is done");*/
         }
 
         private void buttonTraditionalTanaka_Click(object sender, RoutedEventArgs e)

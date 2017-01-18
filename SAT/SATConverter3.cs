@@ -29,6 +29,7 @@ namespace HDictInduction.Console.SAT
 
         BidirectionalGraph<Word, Edge<Word>> semiCompleteGraph;
         BidirectionalGraph<Word, Edge<Word>> completeGraph;
+        BidirectionalGraph<Word, Edge<Word>> graph;
 
         private bool enableComment = true;
         private string maxCost = "100000000000000000000000000000000000000000";
@@ -51,7 +52,7 @@ namespace HDictInduction.Console.SAT
         {
             LinkCache = new Dictionary<int, SLink>();
             LinkWeightCache = new Dictionary<SLink, float>();
-            BidirectionalGraph<Word, Edge<Word>> graph = new BidirectionalGraph<Word, Edge<Word>>(false);
+            graph = new BidirectionalGraph<Word, Edge<Word>>(false);
             semiCompleteGraph = new BidirectionalGraph<Word, Edge<Word>>(false);
             completeGraph = new BidirectionalGraph<Word, Edge<Word>>(false);
             #region Prepare graph
@@ -269,27 +270,43 @@ namespace HDictInduction.Console.SAT
         {
             Cache1.Clear();
             List<SPath> paths = new List<SPath>();
-
+            WordPair pair = new WordPair(uWord, kWord);
+            pair.Polysemy = 0f;
             foreach (var item in graph.OutEdges(uWord))
             {
+                int inDegreePivot = (int)graph.InDegree(item.Target);
+                int outDegreePivot = (int)graph.OutDegree(item.Target);
+                int totalSenseEdge = (Math.Max(inDegreePivot, outDegreePivot) - 1) * (inDegreePivot + outDegreePivot);
+                pair.Polysemy += totalSenseEdge;
+                //Word pivot_sense = item.Target;
+                //for (int sense = 1; sense <= totalSense; sense++)
+                //{
+                //pivot_sense.Value = pivot_sense.Value + "_sense" + sense; 
+
                 SLink linkCU = new SLink(item.Target, uWord);
-                linkCU.Exists = graph.ContainsEdge(uWord, item.Target);
+                linkCU.Exists = true;// graph.ContainsEdge(uWord, pivot_sense);
 
                 SLink linkCK = new SLink(item.Target, kWord);
                 linkCK.Exists = graph.ContainsEdge(item.Target, kWord);
 
                 SPath path = new SPath(linkCU, linkCK);
                 paths.Add(path);
-
+                
                 Cache1.Add(item.Target.ID, true);
+                //}               
             }
 
             foreach (var item in graph.InEdges(kWord))
             {
                 if (Cache1.ContainsKey(item.Source.ID))
                     continue;
+                int inDegreePivot = (int)graph.InDegree(item.Source);
+                int outDegreePivot = (int)graph.OutDegree(item.Source);
+                int totalSenseEdge = (Math.Max(inDegreePivot, outDegreePivot) - 1) * (inDegreePivot + outDegreePivot);
+                pair.Polysemy += totalSenseEdge;
+
                 SLink linkCK = new SLink(item.Source, kWord);
-                linkCK.Exists = graph.ContainsEdge(item.Source, kWord);
+                linkCK.Exists = true;// graph.ContainsEdge(item.Source, kWord);
 
                 SLink linkCU = new SLink(item.Source, uWord);
                 linkCU.Exists = graph.ContainsEdge(uWord, item.Source);
@@ -305,6 +322,7 @@ namespace HDictInduction.Console.SAT
             float pKU = 0;
             float probUK = 0;
             float probKU = 0;
+            //bool hasPolysemy = false;
             foreach (var item in paths)
             {
                 //if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
@@ -326,6 +344,8 @@ namespace HDictInduction.Console.SAT
                     }                        
                     continue;
                 }
+                //if ((float)graph.InDegree(item.LinkCU.WordPivot) > 1 || (float)graph.OutDegree(item.LinkCK.WordPivot) > 1)
+                //    hasPolysemy = true;                    
                 float PrCU = 1.0f / (float)graph.OutDegree(item.LinkCU.WordNonPivot); //P(C|U) = P(C&U)/P(U)
                 float PrKC = 1.0f / (float)graph.OutDegree(item.LinkCK.WordPivot);    //P(K|C) = P(K&C)/P(C)
                 float PrCK = 1.0f / (float)graph.InDegree(item.LinkCK.WordNonPivot);  //P(C|K) = P(C&K)/P(K)
@@ -337,17 +357,20 @@ namespace HDictInduction.Console.SAT
             }
             probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
 
-            WordPair pair = new WordPair(uWord, kWord);
+            //WordPair pair = new WordPair(uWord, kWord);
+            //pair.HasMissingEdge = hasPolysemy;
             pair.Paths = paths;
             pair.Prob = (float)probUK;
+            pair.Polysemy *= (1 - pair.Prob);
 
             //set link weights
             foreach (var item in pair.Paths)
             {
                 //CU
+                //float polysemyCost = 1 / ((float)graph.InDegree(item.LinkCU.WordPivot) * (float)graph.OutDegree(item.LinkCK.WordPivot));
                 if (item.LinkCU.Exists)
                 {
-                    item.LinkCU.Pr = 1f;
+                    item.LinkCU.Pr = 1f; //polysemyCost; 
                     if (!LinkWeightCache.ContainsKey(item.LinkCU))
                         LinkWeightCache.Add(item.LinkCU, item.LinkCU.Pr);
                 }
@@ -358,13 +381,13 @@ namespace HDictInduction.Console.SAT
                     if (LinkWeightCache.TryGetValue(item.LinkCU, out value))
                     {
                         if (pair.Prob > value)
-                            item.LinkCU.Pr = LinkWeightCache[item.LinkCU] = pair.Prob;
+                            item.LinkCU.Pr = LinkWeightCache[item.LinkCU] = pair.Prob; //polysemyCost *
                         else
                             item.LinkCU.Pr = value;
                     }
                     else
                     {
-                        item.LinkCU.Pr = pair.Prob;
+                        item.LinkCU.Pr = pair.Prob; //polysemyCost * 
                         LinkWeightCache.Add(item.LinkCU, pair.Prob);
                     }
                 }
@@ -372,7 +395,7 @@ namespace HDictInduction.Console.SAT
                 //CK
                 if (item.LinkCK.Exists)//false)//
                 {
-                    item.LinkCK.Pr = 1f;
+                    item.LinkCK.Pr = 1f; //polysemyCost
                     if (!LinkWeightCache.ContainsKey(item.LinkCK))
                         LinkWeightCache.Add(item.LinkCK, item.LinkCK.Pr);
                 }
@@ -382,13 +405,13 @@ namespace HDictInduction.Console.SAT
                     if (LinkWeightCache.TryGetValue(item.LinkCK, out value))
                     {
                         if (pair.Prob > value)
-                            LinkWeightCache[item.LinkCK] = item.LinkCK.Pr = pair.Prob;
+                            LinkWeightCache[item.LinkCK] = item.LinkCK.Pr = pair.Prob; //polysemyCost * 
                         else
                             item.LinkCK.Pr = value;
                     }
                     else
                     {
-                        item.LinkCK.Pr = pair.Prob;
+                        item.LinkCK.Pr = pair.Prob; //polysemyCost * 
                         LinkWeightCache.Add(item.LinkCK, pair.Prob);
                     }
                 }
@@ -677,7 +700,7 @@ namespace HDictInduction.Console.SAT
             {
                 string cost = string.Empty;
                 //double realCost = 0;
-                if (item.Key.Exists)
+                if (item.Key.Pr == 1)//item.Key.Exists)
                 {
                     cost = maxCost;
                     cnfBuffer.AppendLine(string.Format("{0} {1} 0", cost, item.Value));
@@ -702,28 +725,51 @@ namespace HDictInduction.Console.SAT
                 }
             }
 
-            //Start of New Pair
+            //Symmetry Constraint
             int counter = 0;
-            Dictionary<WordPair, int> newInferedPair = new Dictionary<WordPair, int>();
+            //Dictionary<WordPair, int> newInferedPair = new Dictionary<WordPair, int>();
+            Dictionary<WordPair, string> polysemyPair = new Dictionary<WordPair, string>();            
             foreach (var pair in pairs)
             {
                 if (enableComment)
-                    cnfBuffer.AppendLine(string.Format("c Start of new pair:{0}   {1}<->{2}", varCount + 1, pair.WordU, pair.WordK));
-                
+                    cnfBuffer.AppendLine(string.Format("c Symmetry Constraint:{0}   {1}<->{2}", varCount + 1, pair.WordU, pair.WordK));
+
                 //connect path and its links
                 ++varCount;
-                
+                /*bool polysemyFound = false;
                 foreach (SPath spath in pair.Paths)
                 {
-                    cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCU], varCount));
-                    cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCK], varCount));                    
-                    clauseCount = clauseCount + 2;                                     
+                    if ((float)graph.InDegree(spath.LinkCU.WordPivot) > 1 || (float)graph.OutDegree(spath.LinkCK.WordPivot) > 1)
+                    {
+                        polysemyFound = true;
+                        break;
+                    }
+                }
+                */
+                
+                if (true)//pair.HasMissingEdge)//polysemyFound) Symmetry constraint only if polysemyFound
+                {
+                    foreach (SPath spath in pair.Paths)
+                    {
+                        cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCU], varCount));
+                        cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, linkVarMap[spath.LinkCK], varCount));
+                        clauseCount = clauseCount + 2;
+                    }
                 }
 
+                if (pair.Polysemy > 0)
+                {
+                    polysemyPair[pair] = varCount.ToString() + "," + Math.Round(pair.Polysemy * 1000000000).ToString();
+                    //if (enableComment)
+                    //    cnfBuffer.AppendLine(string.Format("c Polysemy-pivot Constraint:{0}   {1}<->{2}", varCount + 1, pair.WordU, pair.WordK));
+                    //string polysemyCost = Math.Round(pair.Polysemy * 1000000000).ToString();
+                    //cnfBuffer.AppendLine(string.Format("{0} -{1} 0", polysemyCost, varCount));
+                    //clauseCount++;                                        
+                }
                 //Add alpha to ensure pair from existing edges are prioritized first
-                if (pair.HasMissingEdge)
-                    newInferedPair[pair] = varCount;
-                
+                //if (pair.HasMissingEdge)
+                //    newInferedPair[pair] = varCount;
+
                 if (populateVarPairMap)
                 {
                     pairVarMap.Add(pair, varCount);
@@ -756,7 +802,7 @@ namespace HDictInduction.Console.SAT
                 }
             }
 
-            if (enableComment)
+            /*if (enableComment)
                 cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Soft Constraint 2: New Induced Pair=="));
 
             foreach (KeyValuePair<WordPair, int> newPair in newInferedPair)                
@@ -766,8 +812,19 @@ namespace HDictInduction.Console.SAT
                 cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, varCount, newPair.Value));
                 cnfBuffer.AppendLine(string.Format("{0} -{1} 0", cost, varCount));
                 clauseCount = clauseCount + 2;                
-            }
+            }*/
 
+            if (enableComment)
+                cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Polysemy Pivot Constraint=="));
+
+            foreach (KeyValuePair<WordPair, string> polyPair in polysemyPair)                
+            {
+                string[] polyPairInfo = polyPair.Value.Split(',');
+                varCount++;
+                cnfBuffer.AppendLine(string.Format("{0} {1} -{2} 0", maxCost, varCount, polyPairInfo[0]));
+                cnfBuffer.AppendLine(string.Format("{0} -{1} 0", polyPairInfo[1], varCount));
+                clauseCount = clauseCount + 2;                
+            }
 
             if (enableComment)
                 cnfBuffer.AppendLine(string.Format("c {0}", "==Start of Exclusive constraint =="));
@@ -960,7 +1017,7 @@ namespace HDictInduction.Console.SAT
                     //    currentThreshold = 100000000000 + (1000000000 * omega2Threshold);
                     if (currentCost > highestCost)
                         highestCost = currentCost;
-                    if (autoThreshold == 0 || (autoThreshold > 0 && currentCost <= currentThreshold))
+                    if (autoThreshold < 0 || (autoThreshold >= 0 && currentCost <= currentThreshold))
                         inducedPairs[varValue] = true;
                     else
                         inducedPairs[varValue] = false;

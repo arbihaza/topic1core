@@ -11,6 +11,7 @@ namespace HDictInduction.Console.SAT
         public Word WordK;
         public List<SPath> Paths;
         public float Prob;
+        public float Polysemy;
         public Boolean HasMissingEdge = false;
         private Dictionary<SLink, bool> _links;
 

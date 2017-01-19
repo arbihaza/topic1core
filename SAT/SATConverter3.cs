@@ -41,6 +41,7 @@ namespace HDictInduction.Console.SAT
         public static long highestCost = 0;
 
         public static int symmetryCycle = 1;
+        public static int currentCycle = 1;
         public static int languageOption = 2;
         //public static double omega2Threshold = 0;
         public static double autoThreshold = 0;
@@ -92,7 +93,7 @@ namespace HDictInduction.Console.SAT
             //int cWordCount = cWords.Count();
             int u =0,k=0;
 
-            foreach (var uWord in uWords)
+            /*foreach (var uWord in uWords)
             {
                 foreach (var edge1 in graph.OutEdges(uWord))
                 {
@@ -111,10 +112,48 @@ namespace HDictInduction.Console.SAT
                     }
                 }
  
+            }*/
+            currentCycle = 1;
+            while (currentCycle <= symmetryCycle)
+            {
+                Debug.WriteLine(currentCycle);
+                if (currentCycle > 1)
+                {
+                    //semiCompleteGraph.Clear();
+                    semiCompleteGraph = completeGraph;
+                }                
+                ooPairsDict.Clear();
+                ooPairs.Clear();
+                foreach (var uWord in uWords)
+                {
+                    Word cWord;
+                    Word kWord;
+
+                    foreach (var edge1 in graph.OutEdges(uWord))
+                    {
+                        cWord = edge1.Target;
+                        foreach (var edge2 in graph.OutEdges(cWord))
+                        {
+                            kWord = edge2.Target;
+
+                            WordPair pair = new WordPair(uWord, kWord);
+                            pair = createNewEdges(uWord, kWord, semiCompleteGraph, completeGraph);
+                            if (ooPairsDict.ContainsKey(pair))
+                                continue;
+                            else
+                            {
+                                ooPairsDict.Add(pair, true);
+                                ooPairs.Add(pair);
+                            }
+                        }
+                    }
+                }
+                
+                currentCycle++;                
             }
-            //2nd cycle to add new blue edge and generate more pairs
+            /*//2nd cycle to add new blue edge and generate more pairs
             //Add new pair candidate from the semiCompleteGraph
-            if (languageOption == 2 && symmetryCycle > 1)
+            if (false)//languageOption == 2 && symmetryCycle > 1)
             {
                 ooPairsDict.Clear();
                 ooPairs.Clear();
@@ -139,57 +178,7 @@ namespace HDictInduction.Console.SAT
                             {
                                 ooPairsDict.Add(pair, true);
                                 ooPairs.Add(pair);
-                            }
-                            /*
-                            List<SPath> paths = new List<SPath>();
-                            pair = new WordPair(uWord, kWord);
-                            string newUC = "-";
-                            string newCK = "-";
-                            if (!ooPairsDict.ContainsKey(pair))
-                            {
-                                //Add path for new generated pairs
-                                SLink linkCU = new SLink(cWord, uWord);
-                                linkCU.Exists = graph.ContainsEdge(uWord, cWord);
-
-                                SLink linkCK = new SLink(cWord, kWord);
-                                linkCK.Exists = graph.ContainsEdge(cWord, kWord);
-
-                                if (linkCU.Exists || linkCK.Exists) // At least one edge exist in a path -> Hard Constraint for Traveling the Paths
-                                {
-                                    SPath path = new SPath(linkCU, linkCK);
-                                    paths.Add(path);
-
-                                    //calculate probability ///////////////////////////////////////////////////////////////
-
-                                    float couverage = Math.Min(uWordCount, kWordCount) / (float)Math.Max(uWordCount, kWordCount);
-                                    float pUK = 0;
-                                    float pKU = 0;
-                                    float probUK = 0;
-                                    float probKU = 0;
-                                    foreach (var item in paths)
-                                    {
-                                        //if (!item.LinkCU.Exists || !item.LinkCK.Exists) //containning non-existance link
-                                        //if (!item.LinkCU.Exists || !item.LinkCK.Exists)
-                                        //    continue;
-                                        float PrUC = 1.0f / (float)semiCompleteGraph.OutDegree(item.LinkCU.WordNonPivot);
-                                        float PrCK = 1.0f / (float)semiCompleteGraph.OutDegree(item.LinkCK.WordPivot);
-                                        float PrCU = 1.0f / (float)semiCompleteGraph.InDegree(item.LinkCU.WordPivot);
-                                        float PrKC = 1.0f / (float)semiCompleteGraph.InDegree(item.LinkCK.WordNonPivot);
-
-                                        pUK += PrUC * PrCK;// *wnStatCK;
-                                        pKU += PrKC * PrCU;
-                                    }
-                                    probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
-
-                                    pair = new WordPair(uWord, kWord);
-                                    pair.Paths = paths;
-                                    pair.Prob = (float)probUK;
-                                    pair.HasMissingEdge = true;
-                                    newPairVarMap[pair] = (float)probUK;
-                                    ooPairsDict.Add(pair, true);
-                                    ooPairs.Add(pair);
-                                }
-                            }*/
+                            }                            
                         }
                     }
                 }
@@ -197,7 +186,7 @@ namespace HDictInduction.Console.SAT
 
             //3rd cycle to add new green edge and generate more pairs
             //Add new pair candidate from the semiCompleteGraph
-            if (languageOption == 2 && symmetryCycle > 2)
+            if (false)//languageOption == 2 && symmetryCycle > 2)
             {
                 ooPairsDict.Clear();
                 ooPairs.Clear();
@@ -226,7 +215,7 @@ namespace HDictInduction.Console.SAT
                         }
                     }
                 }
-            }
+            }*/
             float maxWeight = 0;
             return ooPairs;
         }
@@ -266,16 +255,16 @@ namespace HDictInduction.Console.SAT
             return pairs;
         }
 
-        private WordPair createNewEdges(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> graph)//, int uCount, int kCount)
+        private WordPair createNewEdges(Word uWord, Word kWord, BidirectionalGraph<Word, Edge<Word>> semiCompleteGraph, BidirectionalGraph<Word, Edge<Word>> completeGraph)//, int uCount, int kCount)
         {
             Cache1.Clear();
             List<SPath> paths = new List<SPath>();
             WordPair pair = new WordPair(uWord, kWord);
             pair.Polysemy = 0f;
-            foreach (var item in graph.OutEdges(uWord))
+            foreach (var item in semiCompleteGraph.OutEdges(uWord)) // Using the updated graph with new edges
             {
-                int inDegreePivot = (int)graph.InDegree(item.Target);
-                int outDegreePivot = (int)graph.OutDegree(item.Target);
+                int inDegreePivot = (int)semiCompleteGraph.InDegree(item.Target);
+                int outDegreePivot = (int)semiCompleteGraph.OutDegree(item.Target);
                 int totalSenseEdge = (Math.Max(inDegreePivot, outDegreePivot) - 1) * (inDegreePivot + outDegreePivot);
                 pair.Polysemy += totalSenseEdge;
                 //Word pivot_sense = item.Target;
@@ -284,10 +273,10 @@ namespace HDictInduction.Console.SAT
                 //pivot_sense.Value = pivot_sense.Value + "_sense" + sense; 
 
                 SLink linkCU = new SLink(item.Target, uWord);
-                linkCU.Exists = true;// graph.ContainsEdge(uWord, pivot_sense);
+                linkCU.Exists = true;// semiCompleteGraph.ContainsEdge(uWord, pivot_sense);
 
                 SLink linkCK = new SLink(item.Target, kWord);
-                linkCK.Exists = graph.ContainsEdge(item.Target, kWord);
+                linkCK.Exists = semiCompleteGraph.ContainsEdge(item.Target, kWord);
 
                 SPath path = new SPath(linkCU, linkCK);
                 paths.Add(path);
@@ -296,20 +285,20 @@ namespace HDictInduction.Console.SAT
                 //}               
             }
 
-            foreach (var item in graph.InEdges(kWord))
+            foreach (var item in semiCompleteGraph.InEdges(kWord)) // Using the updated graph with new edges
             {
                 if (Cache1.ContainsKey(item.Source.ID))
                     continue;
-                int inDegreePivot = (int)graph.InDegree(item.Source);
-                int outDegreePivot = (int)graph.OutDegree(item.Source);
+                int inDegreePivot = (int)semiCompleteGraph.InDegree(item.Source);
+                int outDegreePivot = (int)semiCompleteGraph.OutDegree(item.Source);
                 int totalSenseEdge = (Math.Max(inDegreePivot, outDegreePivot) - 1) * (inDegreePivot + outDegreePivot);
                 pair.Polysemy += totalSenseEdge;
 
                 SLink linkCK = new SLink(item.Source, kWord);
-                linkCK.Exists = true;// graph.ContainsEdge(item.Source, kWord);
+                linkCK.Exists = true;// semiCompleteGraph.ContainsEdge(item.Source, kWord);
 
                 SLink linkCU = new SLink(item.Source, uWord);
-                linkCU.Exists = graph.ContainsEdge(uWord, item.Source);
+                linkCU.Exists = semiCompleteGraph.ContainsEdge(uWord, item.Source);
 
                 SPath path = new SPath(linkCU, linkCK);
                 paths.Add(path);
@@ -329,33 +318,59 @@ namespace HDictInduction.Console.SAT
                 if (!item.LinkCU.Exists)
                 {
                     if (languageOption == 2)
-                    {
-                        semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCU.WordNonPivot, item.LinkCU.WordPivot));
                         completeGraph.AddEdge(new Edge<Word>(item.LinkCU.WordNonPivot, item.LinkCU.WordPivot));
-                    }
                     continue;
                 }
                 if (!item.LinkCK.Exists)
                 {
                     if (languageOption == 2)
-                    {
-                        semiCompleteGraph.AddEdge(new Edge<Word>(item.LinkCK.WordPivot, item.LinkCK.WordNonPivot));
                         completeGraph.AddEdge(new Edge<Word>(item.LinkCK.WordPivot, item.LinkCK.WordNonPivot));
-                    }                        
                     continue;
                 }
                 //if ((float)graph.InDegree(item.LinkCU.WordPivot) > 1 || (float)graph.OutDegree(item.LinkCK.WordPivot) > 1)
                 //    hasPolysemy = true;                    
-                float PrCU = 1.0f / (float)graph.OutDegree(item.LinkCU.WordNonPivot); //P(C|U) = P(C&U)/P(U)
-                float PrKC = 1.0f / (float)graph.OutDegree(item.LinkCK.WordPivot);    //P(K|C) = P(K&C)/P(C)
-                float PrCK = 1.0f / (float)graph.InDegree(item.LinkCK.WordNonPivot);  //P(C|K) = P(C&K)/P(K)
-                float PrUC = 1.0f / (float)graph.InDegree(item.LinkCU.WordPivot);     //P(U|C) = P(U&C)/P(C)
+                if (currentCycle == 1)
+                {
+                    float PrCU = 1.0f / (float)semiCompleteGraph.OutDegree(item.LinkCU.WordNonPivot); //P(C|U) = P(C&U)/P(U)
+                    float PrKC = 1.0f / (float)semiCompleteGraph.OutDegree(item.LinkCK.WordPivot);    //P(K|C) = P(K&C)/P(C)
+                    float PrCK = 1.0f / (float)semiCompleteGraph.InDegree(item.LinkCK.WordNonPivot);  //P(C|K) = P(C&K)/P(K)
+                    float PrUC = 1.0f / (float)semiCompleteGraph.InDegree(item.LinkCU.WordPivot);     //P(U|C) = P(U&C)/P(C)
 
-                pKU += PrCU * PrKC;
-                pUK += PrCK * PrUC;
+                    pKU += PrCU * PrKC;
+                    pUK += PrCK * PrUC;
+                }
+                else
+                {
+                    float PrCU = 0.0f;
+                    float PrKC = 0.0f;
+                    float PrCK = 0.0f;
+                    float PrUC = 0.0f;
+                    foreach (var downEdgeCU in semiCompleteGraph.OutEdges(item.LinkCU.WordNonPivot)) //Loop through down-path from nonpivot1 to pivot
+                    {
+                        PrCU += 1.0f / LinkWeightCache[new SLink(downEdgeCU.Target, downEdgeCU.Source)]; //P(C|U) = P(C&U)/P(U)
+                    }
+                    foreach (var downEdgeCK in semiCompleteGraph.OutEdges(item.LinkCK.WordPivot)) //Loop through down-path from pivot to nonpivot2
+                    {
+                        PrKC += 1.0f / LinkWeightCache[new SLink(downEdgeCK.Source, downEdgeCK.Target)]; //P(K|C) = P(K&C)/P(C)
+                    }
+                    foreach (var upEdgeCK in semiCompleteGraph.InEdges(item.LinkCK.WordNonPivot)) //Loop through up-path from nonpivot2 to pivot
+                    {
+                        PrCK += 1.0f / LinkWeightCache[new SLink(upEdgeCK.Target, upEdgeCK.Source)]; //P(C|K) = P(C&K)/P(K)
+                    }
+                    foreach (var upEdgeCU in semiCompleteGraph.InEdges(item.LinkCU.WordPivot)) //Loop through up-path from pivot to nonpivot1
+                    {
+                        PrUC += 1.0f / LinkWeightCache[new SLink(upEdgeCU.Source, upEdgeCU.Target)]; //P(U|C) = P(U&C)/P(C)
+                    }
 
+                    PrCU = 1.0f / PrCU;
+                    PrKC = 1.0f / PrKC;
+                    PrCK = 1.0f / PrCK;
+                    PrUC = 1.0f / PrUC;
+                    pUK += PrUC * PrCK;
+                    pKU += PrKC * PrCU;
+                }                
             }
-            probUK = pUK * pKU;//probUK = couverage * pUK * pKU;
+            probUK = pUK * pKU;
 
             //WordPair pair = new WordPair(uWord, kWord);
             //pair.HasMissingEdge = hasPolysemy;
